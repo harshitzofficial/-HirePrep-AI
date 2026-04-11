@@ -22,8 +22,12 @@ app.set("trust proxy", 1);
 // --- Middleware --- (Security Guards and Traffic Directors)
 app.use(express.json());  
 app.use(cookieParser()); 
+
+// 🚀 FIXED: Prevent CORS mismatch by trimming trailing slashes from the origin URL
+const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173", // Dynamic Origin
+    origin: frontendUrl, 
     credentials: true 
 }));
 
