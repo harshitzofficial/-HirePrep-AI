@@ -738,6 +738,7 @@ Authenticates a user and issues a JWT cookie.
 
 **Response:** `200 OK` with `Set-Cookie: token=...`
 
+<<<<<<< HEAD
 ---
 
 #### `GET /api/auth/logout`
@@ -1096,3 +1097,6 @@ graph TD
 | `behavioralQuestionSchema` | `question`, `intention`, `answer` | Focuses on soft skills and situational responses. |
 | `skillGapSchema` | `skill`, `severity` (low/medium/high) | Identifies weaknesses in the candidate's profile. |
 | `preparationPlanSchema` | `day`, `focus`, `tasks` | Provides a structured study timeline. |
+
+   Started Redis Service: I ran docker compose up -d redis to start just the Redis container. This provides the Redis server that your local backend needs to connect to, without requiring you to run the entire backend inside Docker.
+redis-cli --tls -u redis://default:gQAAAAAAAWzUAAIncDJhZDU1N2ZjMTgwY2E0OTcwYmI4M2MzZjQ3MWE0MTlhNnAyOTMzOTY@great-vervet-93396.upstash.io:6379
