@@ -40,7 +40,12 @@ async function registerUserController(req, res) {
             { expiresIn: "1d" }
         );
 
-        res.cookie("token", token); // Set the token in an HTTP-only cookie for better security
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: true, // Required for SameSite=None
+            sameSite: "None", // Required for cross-domain cookies (Vercel -> Render)
+            maxAge: 24 * 60 * 60 * 1000 // 1 day
+        });
             
 
         res.status(201).json({
@@ -85,7 +90,12 @@ async function loginUserController(req, res) {
             { expiresIn: "1d" }
         );
 
-        res.cookie("token", token);
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+            maxAge: 24 * 60 * 60 * 1000
+        });
         res.status(200).json({
             message: "User loggedIn successfully.",
             user: {
@@ -133,7 +143,11 @@ async function logoutUserController(req, res) {
     }
 
     // 5. Clear the cookie from the browser
-    res.clearCookie("token");
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None"
+    });
 
     res.status(200).json({
         message: "User logged out successfully"
