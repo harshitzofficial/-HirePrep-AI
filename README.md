@@ -1,554 +1,1098 @@
-<div align="center">
+# HirePrep AI
 
-# 🤖 HirePrep AI
+An AI-driven, full-stack interview preparation platform that transforms raw resumes and job descriptions into actionable career strategies. Built on the MERN stack with Google Gemini integration.
 
+## Table of Contents
 
-<br/>
-
-**Elevate your career with AI. Instantly generate bespoke interview strategies, targeted questions, and actionable preparation roadmaps based on your resume and target job description.**
-
-<br/>
-
-[🚀 Quick Start](#-quick-start) · [✨ Features](#-features) · [🏗️ Architecture](#️-architecture) · [📖 How It Works](#-how-it-works) · [🤝 Contributing](#-contributing)
-
-<br/>
-
-<img width="1919" height="919" alt="image" src="https://github.com/user-attachments/assets/d5aa1741-3133-4eb1-b9ff-16eb2d63dc08" />
-
-</div>
-
----
-
-## 📋 Table of Contents
-
-- [About The Project](#-about-the-project)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Architecture](#️-architecture)
-- [Quick Start](#-quick-start)
-- [Project Structure](#-project-structure)
-- [Configuration](#️-configuration)
-- [How It Works](#-how-it-works)
-- [Contributing](#-contributing)
-- [Roadmap](#️-roadmap)
-- [License](#-license)
-
----
-
-## 🎯 About The Project
-
-**HirePrep AI** is an advanced, full-stack application that acts as your personal interview coach. Built with **React + Vite** on the frontend and **Node.js + Express** on the backend, it bridges the gap between your career history and the job you want. 
-
-By simply uploading your resume and pasting a job description, the application uses **Google's Gemini AI** to logically map your skills to the requirements, generate a match score, formulate targeted technical and behavioral questions, and instantly build a day-by-day study roadmap.
-
-This project is a perfect showcase of combining modern frontend glassmorphism design with powerful backend AI schemas and PDF generation.
+- [Overview](#overview)
+- [Core Capabilities](#core-capabilities)
+- [High-Level Architecture](#high-level-architecture)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Environment Configuration](#environment-configuration)
+  - [Running the Application](#running-the-application)
+- [Backend](#backend)
+  - [Server Entry Point](#server-entry-point)
+  - [Application Wiring](#application-wiring)
+  - [Authentication System](#authentication-system)
+  - [Interview Report Pipeline](#interview-report-pipeline)
+  - [AI Service (Google Gemini Integration)](#ai-service-google-gemini-integration)
+  - [Job Search Service](#job-search-service)
+  - [Database & Data Models](#database--data-models)
+- [Frontend](#frontend)
+  - [Application Entry Point](#application-entry-point)
+  - [Routing & Application Shell](#routing--application-shell)
+  - [Authentication Feature](#authentication-feature)
+  - [Interview Feature](#interview-feature)
+  - [Public Landing Page](#public-landing-page)
+  - [Styling System](#styling-system)
+- [API Reference](#api-reference)
+  - [Auth Endpoints (`/api/auth`)](#auth-endpoints-apiauth)
+  - [Interview Endpoints (`/api/interview`)](#interview-endpoints-apiinterview)
+  - [Job Search Endpoint (`/api/jobs`)](#job-search-endpoint-apijobs)
+- [Glossary](#glossary)
 
 ---
 
-## ✨ Features
+## Overview
 
-| Feature | Description |
-|---|---|
-| 📄 **Smart Resume Parsing** | Extracts and analyzes text directly from uploaded PDF and DOCX files. |
-| 🎯 **Targeted Strategy** | Generates custom technical and behavioral questions specifically relevant to the candidate and role. |
-| 📊 **Match Scoring** | Instantly evaluates how well your profile aligns with the job description. |
-| ⚡ **Actionable Roadmaps** | Creates comprehensive, day-by-day preparation plans based on identified skill gaps. |
-| 🖨️ **AI Resume Builder** | Re-formats and generates ATS-friendly, highly professional resumes exported as PDFs via Puppeteer. |
-| 🎨 **Premium Glassmorphism UI** | A sleek, responsive, dark-themed design built with modern SCSS techniques. |
-| 🛡️ **Structured Output** | Uses Zod schemas to ensure the AI always returns exact, predictable JSON responses. |
+HirePrep AI is a full-stack, AI-driven interview preparation platform designed to transform raw resumes and job descriptions into actionable career strategies. By leveraging Large Language Models (LLMs), the system automates deep resume analysis, generates tailored technical and behavioral interview questions, provides structured study roadmaps, and fetches live job opportunities.
 
----
+## Core Capabilities
 
-## 🛠 Tech Stack
-
-### Frontend
-![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
-![Vite](https://img.shields.io/badge/Vite-Latest-646CFF?style=flat-square&logo=vite&logoColor=white)
-![SCSS](https://img.shields.io/badge/SCSS-CC6699?style=flat-square&logo=sass&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
-
-### Backend
-![Node.js](https://img.shields.io/badge/Node.js-LTS-339933?style=flat-square&logo=nodedotjs&logoColor=white)
-![Express](https://img.shields.io/badge/Express-5.x-000000?style=flat-square&logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb&logoColor=white)
-![Google Gemini](https://img.shields.io/badge/Google_GenAI-API-4285F4?style=flat-square&logo=google&logoColor=white)
-![Puppeteer](https://img.shields.io/badge/Puppeteer-PDFs-40B5A4?style=flat-square&logo=puppeteer&logoColor=white)
+- **Deep Resume Analysis** — Extracts experience and skills from PDF uploads to map against job requirements.
+- **Targeted Strategy** — Generates custom-tailored interview answers based on specific company cultures and candidate backgrounds.
+- **Instant Roadmaps** — Creates day-by-day preparation plans using structured AI output.
+- **AI Job Matcher** — Derives optimized search queries from user profiles to find live listings via external APIs.
 
 ---
 
-## 🏗️ Architecture
+## High-Level Architecture
 
-```
-┌───────────────────────────────────────────────────────────────┐
-│                         USER BROWSER                          │
-│                                                               │
-│   ┌────────────────────────────────────────────────────────┐  │
-│   │            React Frontend  (Vite + SCSS)               │  │
-│   │   Provides Job Description, Resume & Self Description  │  │
-│   └───────────────────────┬────────────────────────────────┘  │
-│                           │  HTTP / REST API (Axios)          │
-└───────────────────────────┼───────────────────────────────────┘
-                            │
-                            ▼
-┌───────────────────────────────────────────────────────────────┐
-│              Node.js + Express Backend                        │
-│                                                               │
-│   ┌───────────────┐  ┌───────────────┐  ┌─────────────────┐   │
-│   │ Multer + PDF  │  │  Controllers  │  │   AI Service    │   │
-│   │ Parser        │→ │  Business     │→ │  ai.service.js  │   │
-│   │ (Uploads)     │  │  Logic        │  │  (Zod + Gemini) │   │
-│   └───────────────┘  └───────┬───────┘  └───────┬─────────┘   │
-└─────────────────────────────── │─────────────── │─────────────┘
-                                 │                │  HTTPS
-                                 ▼                ▼
-                     ┌──────────────────┐ ┌─────────────────────────┐
-                     │   MongoDB        │ │   Google Gemini API     │
-                     │   (DB Storage)   │ │  gemini-3-flash-preview │
-                     └──────────────────┘ └─────────────────────────┘
+The project follows a classic three-tier architecture using the MERN stack (MongoDB, Express, React, Node.js) with integrated AI services.
+
+```mermaid
+graph TD
+    subgraph "Frontend (React SPA)"
+        UI_Component --> useAuth_Hook
+        UI_Component --> useInterview_Hook
+        useAuth_Hook --> auth_api_js
+        useInterview_Hook --> interview_api_js
+    end
+
+    subgraph "Backend (Express API)"
+        auth_api_js -- "REST /api/auth" --> auth_routes_js
+        interview_api_js -- "REST /api/interview" --> interview_routes_js
+
+        auth_routes_js --> auth_controller_js
+        interview_routes_js --> interview_controller_js
+
+        interview_controller_js --> ai_service_js
+        auth_controller_js --> User_Model
+        interview_controller_js --> InterviewReport_Model
+    end
+
+    subgraph "External & Persistence"
+        ai_service_js -- "Structured Prompt" --> Google_Gemini_API
+        User_Model --> MongoDB_Atlas
+        InterviewReport_Model --> MongoDB_Atlas
+    end
+
+    Google_Gemini_API -- "JSON Schema Response" --> ai_service_js
 ```
 
-### Data Flow
+### User Journey
 
-1. User uploads a Resume (`.pdf` / `.docx`) and inputs a Target Job Description in the React UI.
-2. Frontend sends a `POST` request with the configuration to the Express backend.
-3. Backend extracts the text from the uploaded file using `pdf-parse`.
-4. The `ai.service.js` constructs a prompt with the parsed details alongside strict **Zod** schema instructions.
-5. The Gemini API analyzes the profile vs. job description and returns a validated JSON response.
-6. The Backend stores the response in MongoDB and sends it back to the Frontend.
-7. The Frontend dynamically renders the preparation plan, skill gaps, and custom questions.
+```mermaid
+sequenceDiagram
+    participant U as "User (Browser)"
+    participant R as "React Router"
+    participant A as "Express API"
+    participant D as "MongoDB"
+
+    U->>R: Navigates to "/register"
+    R->>A: POST /api/auth/register
+    A->>D: Save User Document
+    U->>R: Uploads Resume on "/dashboard"
+    R->>A: POST /api/interview (Multipart)
+    A->>A: ai.service.js generateInterviewReport()
+    A->>D: Save InterviewReport Document
+    A-->>U: Return JSON Report
+    U->>R: Views "/interview/:id"
+```
 
 ---
 
-## 🚀 Quick Start
+## Tech Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Vite, React Router v7, Axios, SCSS (Glassmorphism) |
+| **Backend** | Node.js, Express 5, Multer, PDF-Parse, Zod |
+| **Database** | MongoDB, Mongoose |
+| **AI/External** | Google Generative AI (Gemini), Puppeteer (PDF Gen), JSearch API (RapidAPI) |
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- **Node.js** v18 or higher — [Download](https://nodejs.org/)
-- **npm** v9 or higher (bundled with Node.js)
-- A **Google Gemini API key** (free) → [Get one here](https://aistudio.google.com/app/apikey)
-- A **MongoDB URI** (free cluster via MongoDB Atlas)
+- Node.js (v18+)
+- npm
+- A MongoDB Atlas instance (or local MongoDB)
+- Google Gemini API Key
+- RapidAPI Key (for JSearch)
 
 ### Installation
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/harshitzofficial/Job-Prep-Platform.git
-cd interview-ai-yt-main
+# Clone the repository
+git clone https://github.com/harshitzofficial/HirePrep-AI.git
+cd HirePrep-AI
 
-# 2. Set up the Backend
+# Install backend dependencies
 cd Backend
 npm install
 
-# 3. Configure your environment variables
-# Create a .env file and add your credentials (see Configuration section below)
-cp .env.example .env
-
-# 4. Start the backend server
-npm run dev
-# ✅ Backend running at http://localhost:3000
-
-# 5. Open a new terminal — set up the Frontend
+# Install frontend dependencies
 cd ../Frontend
 npm install
+```
 
-# 6. Start the frontend dev server
+### Environment Configuration
+
+Create `.env` files in both the `Backend/` and `Frontend/` directories. These files are excluded from version control via `.gitignore`.
+
+#### Backend (`Backend/.env`)
+
+| Variable | Description |
+| :--- | :--- |
+| `PORT` | The port on which the Express server runs (Default: `3000`). |
+| `MONGO_URI` | Connection string for MongoDB Atlas or local instance. |
+| `JWT_SECRET` | Secret key used for signing JSON Web Tokens. |
+| `GOOGLE_GENAI_API_KEY` | API Key for Google Gemini integration. |
+| `RAPIDAPI_KEY` | Key for JSearch API via RapidAPI for live job fetching. |
+
+#### Frontend (`Frontend/.env`)
+
+| Variable | Description |
+| :--- | :--- |
+| `VITE_API_URL` | The base URL of the running backend (e.g., `http://localhost:3000/api`). |
+
+### Running the Application
+
+```bash
+# Start the backend (from Backend/ directory)
 npm run dev
-# ✅ Frontend running at http://localhost:5173
+
+# Start the frontend (from Frontend/ directory)
+npm run dev
 ```
 
-### Verify It's Working
+The backend server entry point is `server.js`, which initializes the Express application defined in `src/app.js`. The frontend is served via Vite and mounts the React application into the `div#root` element.
 
-Open [http://localhost:5173](http://localhost:5173) in your browser. You should see the HirePrep AI home screen.
+```mermaid
+sequenceDiagram
+    participant Dev as "Developer"
+    participant BE as "Backend (Express)"
+    participant DB as "MongoDB (Mongoose)"
+    participant FE as "Frontend (Vite)"
 
----
+    Note over Dev, FE: Start Backend
+    Dev->>BE: npm run dev
+    BE->>BE: Load dotenv
+    BE->>DB: connectToDB()
+    DB-->>BE: Connection Established
+    BE->>BE: app.listen(PORT)
 
-## interview-ai-yt-main/
-├── Backend/
-│   ├── docker-compose.yml
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── server.js
-│   └── src/
-│       ├── app.js
-│       ├── config/
-│       │   ├── database.js
-│       │   └── redis.js
-│       ├── controllers/
-│       │   ├── auth.controller.js
-│       │   ├── interview.controller.js
-│       │   └── job.controller.js
-│       ├── middlewares/
-│       │   ├── auth.middleware.js
-│       │   └── file.middleware.js
-│       ├── models/
-│       │   ├── interviewReport.model.js
-│       │   └── user.model.js
-│       ├── routes/
-│       │   ├── auth.routes.js
-│       │   ├── interview.routes.js
-│       │   └── job.routes.js
-│       └── services/
-│           ├── ai.service.js
-│           └── job.service.js
-└── Frontend/
-    ├── eslint.config.js
-    ├── index.html
-    ├── package.json
-    ├── vite.config.js
-    ├── public/
-    └── src/
-        ├── App.jsx
-        ├── app.routes.jsx
-        ├── main.jsx
-        ├── style.scss
-        └── features/
-            ├── auth/
-            │   ├── auth.context.jsx
-            │   ├── auth.form.scss
-            │   ├── components/
-            │   │   └── Protected.jsx
-            │   ├── hooks/
-            │   │   └── useAuth.js
-            │   ├── pages/
-            │   │   ├── Login.jsx
-            │   │   └── Register.jsx
-            │   └── services/
-            │       └── auth.api.js
-            ├── interview/
-            │   ├── interview.context.jsx
-            │   ├── hooks/
-            │   │   ├── useInterview.js
-            │   │   └── useSpeech.js
-            │   ├── pages/
-            │   │   ├── Home.jsx
-            │   │   ├── Interview.jsx
-            │   │   └── LiveInterview.jsx
-            │   ├── services/
-            │   │   └── interview.api.js
-            │   └── style/
-            │       ├── home.scss
-            │       ├── interview.scss
-            │       └── liveInterview.scss
-            └── public/
-                ├── pages/
-                │   └── Landing.jsx
-                └── style/
-                    └── landing.scss
-        └── style/
-            └── button.scss
+    Note over Dev, FE: Start Frontend
+    Dev->>FE: npm run dev
+    FE->>FE: Vite builds HMR
+    FE->>FE: Mount #root
 ```
 
 ---
 
-## ⚙️ Configuration
+## Backend
 
-### Backend — `.env`
+The backend is a Node.js application built with Express. It serves as the central orchestration layer, connecting the React frontend to MongoDB for persistence and external services like Google Gemini AI and JSearch RapidAPI.
 
-Create a `.env` file inside the `Backend/` directory:
+### Server Entry Point
 
-```env
-# ── Server ──────────────────────────────────────────────────
-PORT=3000
-NODE_ENV=development
+The application execution begins at `Backend/server.js`:
 
-# ── Database ────────────────────────────────────────────────
-MONGODB_URI=your_mongodb_connection_string
+| Component | Responsibility |
+| :--- | :--- |
+| `dotenv` | Loads environment variables (`PORT`, `MONGO_URI`, etc.) |
+| `connectToDB` | Initializes the Mongoose connection to MongoDB |
+| `app.listen` | Starts the server on the specified `PORT` (default 3000) |
 
-# ── Authentication ──────────────────────────────────────────
-JWT_SECRET=your_jwt_secret_key
+### Application Wiring
 
-# ── AI Provider ─────────────────────────────────────────────
-GOOGLE_GENAI_API_KEY=your_google_gemini_api_key_here
+Core application logic and middleware configuration reside in `Backend/src/app.js`:
+
+**Global Middlewares:**
+- `express.json()` — Parses incoming JSON payloads.
+- `cookieParser()` — Parses Cookie headers for JWT-based authentication.
+- `cors()` — Configured to allow requests from `http://localhost:5173` with `credentials: true`.
+
+**Route Mounting:**
+- `/api/auth` — User lifecycle management.
+- `/api/interview` — Resume analysis and report generation.
+- `/api/jobs` — AI-driven job searching.
+
+```mermaid
+graph LR
+    subgraph "Routing Layer"
+        auth_routes["auth.routes.js"]
+        interview_routes["interview.routes.js"]
+        job_routes["job.routes.js"]
+    end
+
+    subgraph "Controller & Service Layer"
+        auth_ctrl["auth.controller.js"]
+        interview_ctrl["interview.controller.js"]
+        ai_svc["ai.service.js"]
+        job_svc["job.service.js"]
+    end
+
+    subgraph "Data Layer"
+        User_Model["User Model"]
+        Report_Model["InterviewReport Model"]
+        Blacklist_Model["BlacklistToken Model"]
+    end
+
+    auth_routes --> auth_ctrl
+    interview_routes --> interview_ctrl
+    job_routes --> job_svc
+
+    auth_ctrl --> User_Model
+    auth_ctrl --> Blacklist_Model
+    interview_ctrl --> ai_svc
+    interview_ctrl --> Report_Model
+    job_svc --> ai_svc
 ```
-
-> ⚠️ **Never commit your `.env` file.**
 
 ---
 
-## 🧠 How It Works
+### Authentication System
 
-### Structured AI Outputs with Zod (`ai.service.js`)
+The authentication system provides a secure, cookie-based session management flow using JWT, `bcryptjs` for password hashing, and a database-backed blacklist for token invalidation.
 
-Unlike standard AI text generation, **HirePrep AI** ensures 100% predictable integration by combining the `@google/genai` library with **Zod** schema translation to enforce strict JSON output formatting:
+#### Authentication Lifecycle
 
-```javascript
-const interviewReportSchema = z.object({
-    matchScore: z.number(),
-    technicalQuestions: z.array(z.object({
-        question: z.string(),
-        intention: z.string(),
-        answer: z.string()
-    })),
-    // ... Additional schema definitions
-});
+1. **Registration** — New users provide `username`, `email`, and `password`. The password is hashed with a salt factor of 10 before persistence.
+2. **Login** — Credentials are verified using `bcrypt.compare`. On success, a JWT is signed (1-day expiry) containing the user's ID and username.
+3. **Session Management** — Tokens are issued via `res.cookie("token", token)` as HTTP-only cookies. The `authUser` middleware extracts and validates this cookie on protected routes.
+4. **Logout & Blacklisting** — On logout, the token is saved to the `tokenBlacklistModel` and the cookie is cleared.
 
-const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-    config: {
-        responseMimeType: "application/json",
-        responseSchema: zodToJsonSchema(interviewReportSchema),
+```mermaid
+sequenceDiagram
+    participant Client
+    participant authRouter
+    participant authController
+    participant bcrypt
+    participant jwt
+    participant MongoDB
+
+    Note over Client, MongoDB: Registration Flow
+    Client->>authRouter: POST /api/auth/register
+    authRouter->>authController: registerUserController(req, res)
+    authController->>MongoDB: userModel.findOne({email/username})
+    authController->>bcrypt: hash(password, 10)
+    authController->>MongoDB: userModel.create({..., password: hash})
+    authController->>jwt: sign({id, username}, JWT_SECRET)
+    authController->>Client: res.cookie("token") & 201 Created
+
+    Note over Client, MongoDB: Login Flow
+    Client->>authRouter: POST /api/auth/login
+    authRouter->>authController: loginUserController(req, res)
+    authController->>MongoDB: userModel.findOne({email})
+    authController->>bcrypt: compare(password, hash)
+    authController->>jwt: sign({id, username}, JWT_SECRET)
+    authController->>Client: res.cookie("token") & 200 OK
+```
+
+#### Security Middleware (`authUser`)
+
+The middleware performs a three-step validation:
+1. **Extraction** — Retrieves the token from `req.cookies.token`.
+2. **Blacklist Check** — Queries `tokenBlacklistModel` to ensure the token hasn't been invalidated.
+3. **Verification** — Uses `jwt.verify` with `JWT_SECRET` to validate signature and expiration.
+
+Upon success, the decoded payload is attached to `req.user`.
+
+---
+
+### Interview Report Pipeline
+
+The pipeline transforms raw candidate data (PDF resume, job description, self-description) into a structured, AI-generated preparation report.
+
+```mermaid
+graph TD
+    Client["Client (React SPA)"] -- "POST /api/interview/ (FormData)" --> Route["interviewRouter"]
+    Route -- "upload.single('resume')" --> Multer["file.middleware (MemoryStorage)"]
+    Multer -- "req.file.buffer" --> Controller["generateInterViewReportController"]
+
+    subgraph "Text Extraction & AI"
+        Controller -- "Uint8Array.from(buffer)" --> PDFParse["pdf-parse"]
+        PDFParse -- "resume text" --> AIService["generateInterviewReport()"]
+        AIService -- "Zod-validated JSON" --> Controller
+    end
+
+    subgraph "Persistence"
+        Controller -- "create()" --> Mongoose["interviewReportModel"]
+        Mongoose -- "Save Document" --> MongoDB[("MongoDB")]
+    end
+
+    Controller -- "201 Created + JSON" --> Client
+```
+
+#### Key Components
+
+1. **File Ingestion (Multer)** — Uses `multer.memoryStorage()` to keep the uploaded PDF in a buffer. Enforces a 3MB file size limit.
+2. **Text Extraction (pdf-parse)** — Converts `req.file.buffer` into a `Uint8Array` and extracts raw text.
+3. **AI Generation & Schema Enforcement** — Extracted text + descriptions are passed to `generateInterviewReport` which uses Zod-enforced schemas with Google Gemini.
+4. **Data Persistence (Mongoose)** — Results are merged with input data and user ID to create a new `InterviewReport` document.
+
+#### Retrieval Logic
+
+- **List All** — `getAllInterviewReportsController` retrieves reports sorted by creation date, excluding heavy text fields for dashboard optimization.
+- **Single Report** — `getInterviewReportByIdController` fetches the full document, ensuring the `user` ID matches the authenticated requester.
+
+---
+
+### AI Service (Google Gemini Integration)
+
+The AI Service layer (`Backend/src/services/ai.service.js`) is the core intelligence engine. It uses **Zod** for schema definition and **zod-to-json-schema** to enforce strict JSON output from the Gemini API.
+
+#### Interview Report Schema
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `matchScore` | Number | A 0-100 score matching candidate to job description |
+| `technicalQuestions` | Array | Questions, interviewer intentions, and model answers |
+| `behavioralQuestions` | Array | Soft-skill questions with suggested approaches |
+| `skillGaps` | Array | Missing skills with severity levels (low/medium/high) |
+| `preparationPlan` | Array | Day-wise roadmap (day, focus, tasks) |
+| `title` | String | The specific job title for the report |
+
+#### Report Generation Flow
+
+1. **Prompt Construction** — Combines `resume`, `selfDescription`, and `jobDescription` into a single prompt.
+2. **Schema Enforcement** — `zodToJsonSchema` converts the Zod object into a JSON schema for Gemini's `responseSchema`.
+3. **API Call** — Invokes `ai.models.generateContent` with `responseMimeType: "application/json"`.
+4. **Parsing** — Validates and parses the AI's response into a JavaScript object.
+
+#### Resume PDF Generation Pipeline
+
+A two-step process for generating ATS-friendly resumes:
+
+1. **HTML Generation (`generateResumePdf`)** — Prompts Gemini to generate professional, ATS-friendly HTML.
+2. **PDF Rendering (`generatePdfFromHtml`)** — Uses **Puppeteer** to convert HTML into a binary PDF buffer (A4 format, custom margins).
+
+```mermaid
+sequenceDiagram
+    participant AI as "Gemini AI"
+    participant SVC as "generateResumePdf"
+    participant PUP as "Puppeteer (Headless Chrome)"
+    participant BUF as "PDF Buffer (Binary)"
+
+    SVC->>AI: Send Resume Data + HTML Prompt
+    AI-->>SVC: JSON { html: "..." }
+    SVC->>PUP: generatePdfFromHtml(htmlContent)
+    Note over PUP: page.setContent(htmlContent)
+    PUP->>PUP: page.pdf({ format: 'A4' })
+    PUP-->>SVC: pdfBuffer
+    SVC-->>BUF: Return Buffer to Controller
+```
+
+#### Key Functions
+
+| Function | Input | Output | Role |
+| :--- | :--- | :--- | :--- |
+| `generateInterviewReport` | `resume`, `selfDescription`, `jobDescription` | Structured Report Object | Primary AI analysis for interview prep |
+| `generateResumePdf` | `resume`, `selfDescription`, `jobDescription` | PDF Buffer | AI HTML generation + Puppeteer rendering |
+| `generatePdfFromHtml` | `htmlContent` (String) | PDF Buffer | Low-level Puppeteer PDF conversion |
+
+---
+
+### Job Search Service
+
+A specialized subsystem that uses Google Gemini AI to analyze the user's resume and dynamically generate search queries, dispatched to the JSearch RapidAPI for real-time job opportunities.
+
+```mermaid
+sequenceDiagram
+    participant Client as "Client (Frontend)"
+    participant Controller as "job.controller.js"
+    participant Model as "interviewReport.model"
+    participant Service as "job.service.js"
+    participant Gemini as "Google Gemini AI"
+    participant JSearch as "JSearch (RapidAPI)"
+
+    Client->>Controller: GET /api/jobs/search?location=...
+    Controller->>Model: findOne({ user: req.user.id }).sort({ createdAt: -1 })
+    Model-->>Controller: latestReport (resume text)
+
+    Controller->>Service: getJobSearchQueryFromResume(resumeText)
+    Service->>Gemini: generateContent(prompt)
+    Gemini-->>Service: "Job Title String"
+    Service-->>Controller: searchQuery
+
+    Controller->>Service: fetchLiveJobs(searchQuery, location)
+    Service->>JSearch: GET /search?query=...
+    JSearch-->>Service: JSON (Job Listings)
+    Service-->>Controller: jobs array
+
+    Controller-->>Client: 200 OK (searchQuery, jobs)
+```
+
+#### Component Breakdown
+
+1. **Controller Logic** — Validates `location` query param, retrieves the most recent resume from MongoDB, coordinates AI query generation and external job fetching.
+2. **AI Query Extraction** — `getJobSearchQueryFromResume` uses `gemini-1.5-flash` to translate a full resume into a concise job title search term. Falls back to "Software Engineer" on failure.
+3. **External API Integration** — `fetchLiveJobs` calls JSearch API via RapidAPI with `X-RapidAPI-Key` and `X-RapidAPI-Host` headers.
+
+---
+
+### Database & Data Models
+
+The persistence layer uses MongoDB with the Mongoose ODM. The `connectToDB` function connects using `process.env.MONGO_URI` during server initialization.
+
+#### 1. User Model (`users` collection)
+
+| Field | Type | Validation | Description |
+| :--- | :--- | :--- | :--- |
+| `username` | String | Unique, Required | Unique identifier for the user |
+| `email` | String | Unique, Required | User's email address for login |
+| `password` | String | Required | Bcrypt hashed password string |
+
+#### 2. InterviewReport Model (`interviewreports` collection)
+
+The most complex entity, storing AI analysis output with several sub-schemas:
+
+```mermaid
+classDiagram
+    class interviewReportModel {
+        +String jobDescription
+        +String resume
+        +String selfDescription
+        +Number matchScore
+        +String title
+        +ObjectId user
+        +Date createdAt
     }
-});
-```
-This powerful configuration guarantees your React frontend never breaks due to invalidly formatted strings.
+    class technicalQuestionSchema {
+        +String question
+        +String intention
+        +String answer
+    }
+    class behavioralQuestionSchema {
+        +String question
+        +String intention
+        +String answer
+    }
+    class skillGapSchema {
+        +String skill
+        +String severity
+    }
+    class preparationPlanSchema {
+        +Number day
+        +String focus
+        +String[] tasks
+    }
 
----
-
-## 🤝 Contributing
-
-Contributions are what make the open-source community great. Any contribution you make is **hugely appreciated**!
-
-1. **Fork** the repository
-2. Create your feature branch: `git checkout -b feature/AmazingFeature`
-3. Commit your changes: `git commit -m 'Add some AmazingFeature'`
-4. Push to the branch: `git push origin feature/AmazingFeature`
-5. Open a **Pull Request**
-
----
-
-## 🗺️ Roadmap
-
-- [x] Integrate Google Gemini Flash for Interview Generation
-- [x] Setup Zod Schema Validation for AI Outputs
-- [x] Complete the Glassmorphism Frontend Layout
-- [x] Resume Parsing via PDF-parse
-- [x] Automated Resume Generation via Puppeteer
-- [ ] Add Mock Audio/Video Interviews
-- [ ] Implement LeetCode-style Code Execution environments
-- [ ] Add real-time WebSocket integrations for peer interviews
-
----
-
-## 📄 License
-
-Distributed under the ISC License. 
-
----
-
-<div align="center">
-
-Made with ❤️ by Harshit Singh
-
-⭐ If this project helped you, please give it a star — it really helps!
-
-</div>
-
-
-
-## CLI REDIS
-
-This is the standard way to interact with Redis from the terminal.
-
-In your PowerShell terminal, navigate to the Backend directory and start the containers if they aren't already running:
-bash
-
-cd Backend
-docker-compose up -d
-
-Execute the redis-cli inside the running Redis container:
-
-bash
-docker-compose exec redis redis-cli
-
-Once you're inside the Redis shell (you'll see 127.0.0.1:6379>), you can run commands to inspect data:
-List all keys: KEYS *
-See the type of a key: TYPE "your_key_name"
-Get the value of a string key: GET "your_key_name"
-Get all fields & values of a hash key: HGETALL "your_hash_key"
-To exit the CLI, just type exit
-
-## GUI REDIS
-
-Install and open RedisInsight.
-Add a database connection.
-Set the Host to 127.0.0.1 and Port to 6379.
-Connect, and you'll be able to visually browse, search, edit, and delete the keys and values currently stored.
-
-
-Time-To-Live (TTL) for data stored in Redis depends on exactly what is being stored. There are currently **two distinct TTL rules** defined in your codebase:
-
-### 1. Cached Database & AI Responses: 24 Hours
-When a user generates or retrieves an Interview Report, the result is cached in Redis to speed up future requests. The TTL for this cached data is **86,400 seconds (which is exactly 24 hours).**
-
-This applies to:
-- Cached AI service outputs (`Backend/src/services/ai.service.js`)
-- Cached Interview Reports retrieved from MongoDB (`Backend/src/controllers/interview.controller.js`)
-
-**Code snippet from your repo:**
-```javascript
-await redisClient.setEx(cacheKey, 86400, JSON.stringify(interviewReport));
+    interviewReportModel *-- technicalQuestionSchema : technicalQuestions[]
+    interviewReportModel *-- behavioralQuestionSchema : behavioralQuestions[]
+    interviewReportModel *-- skillGapSchema : skillGaps[]
+    interviewReportModel *-- preparationPlanSchema : preparationPlan[]
 ```
 
-### 2. Blacklisted Tokens (Logout): Dynamic TTL
-When a user logs out, their current JWT token is added to a Redis "blacklist" so it can't be reused. In this case, there is no hard-coded TTL. Instead, the backend calculates the **exact time remaining before the JWT naturally expires** (`timeLeft`). 
+**Sub-Schema Details:**
+- **technicalQuestionSchema** — AI-generated technical questions with `intention` and ideal `answer`.
+- **behavioralQuestionSchema** — Soft-skill and situational questions.
+- **skillGapSchema** — Missing competencies with `severity` enum: `low`, `medium`, `high`.
+- **preparationPlanSchema** — Day-by-day roadmap with `focus` area and specific `tasks`.
 
-The TTL is set to that exact `timeLeft` amount. This is a very efficient way to handle it, as the Redis key automatically cleans itself up the precise moment the token would have expired anyway.
+**Key Fields:**
+- `user` — Reference to the `users` collection via `ObjectId`.
+- `matchScore` — Numeric value (0-100) representing candidate fit.
+- `timestamps` — Auto-managed `createdAt` and `updatedAt`.
 
-**Code snippet from your repo (`auth.controller.js`):**
-```javascript
-await redisClient.setEx(`blacklist:${token}`, timeLeft, "true");
+#### 3. BlacklistToken Model (`blacklistTokens` collection)
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `token` | String | The JWT string to be invalidated |
+| `createdAt` | Date | Auto-generated timestamp |
+
+---
+
+## Frontend
+
+The frontend is a modern Single Page Application (SPA) built with **React 19** and **Vite**. It provides a glassmorphism-themed interface for uploading resumes, generating AI-driven interview preparation reports, and tracking job search progress.
+
+### Application Entry Point
+
+1. `Frontend/index.html` provides the `<div id="root">`.
+2. `Frontend/src/main.jsx` uses `createRoot` to mount the React tree.
+3. `style.scss` is imported at the entry point to initialize CSS variables and base layouts.
+4. `App.jsx` wraps the entire application in global context providers.
+
+### Global Provider Tree
+
+| Provider | Purpose | Key Data/Methods |
+| :--- | :--- | :--- |
+| `AuthProvider` | Manages user session, login, and registration | `user`, `loading`, `handleLogin`, `handleLogout` |
+| `InterviewProvider` | Manages report generation and history | `reports`, `generateReport`, `getReportById` |
+| `RouterProvider` | Handles client-side routing logic | `router` configuration object |
+
+```mermaid
+graph TD
+    subgraph "Entry & Configuration"
+        MAIN["main.jsx"] --> APP["App.jsx"]
+        APP --> ROUTES["app.routes.jsx"]
+    end
+
+    subgraph "Global State (Providers)"
+        APP --> AUTH_P["AuthProvider"]
+        APP --> INT_P["InterviewProvider"]
+    end
+
+    subgraph "Feature Modules"
+        ROUTES --> LAND["Landing.jsx (Public)"]
+        ROUTES --> AUTH["Login/Register (Auth)"]
+        ROUTES --> DASH["Home.jsx (Interview)"]
+        ROUTES --> DETAIL["Interview.jsx (Interview)"]
+    end
+
+    subgraph "Guards"
+        AUTH_P -.-> PROT["Protected.jsx"]
+        PROT --> DASH
+        PROT --> DETAIL
+    end
 ```
-----------------------------------------------------------------------------------------------
-## WHY MONGODB
-
-Listed directory models
-Viewed interviewReport.model.js:1-108
-
-Based on the architecture of your `Interview-AI-YT` project, choosing MongoDB over a traditional relational database (like PostgreSQL or MySQL) is a highly strategic and natural choice. 
-
-Here is a breakdown of why MongoDB is specifically well-suited for your application:
-
-### 1. Handling Deeply Nested Data
-If we look at your `interviewReport.model.js`, a single "Interview Report" contains **deeply nested, multi-layered data arrays**:
-- `technicalQuestions` (Array of objects)
-- `behavioralQuestions` (Array of objects)
-- `skillGaps` (Array of objects)
-- `preparationPlan` (Array of nested objects with `tasks` arrays)
-- Arrays of strings (`detectedSkills`, `identifiedProjects`)
-
-**In MongoDB (NoSQL):** You can store this entire report as a **single, unified document**. Fetching the interview report is incredibly fast because it only requires one read operation.
-**In SQL (Relational DB):** You would need to create 6+ separate tables (e.g., `Reports`, `TechnicalQuestions`, `BehavioralQuestions`, `SkillGaps`, `PreparationPlans`, `Tasks`) linked by Foreign Keys. Retrieving a single report would require multiple costly `JOIN` operations across these tables, increasing complexity and query times.
-
-### 2. Perfect Fit for AI-Generated Structured Output
-Since your project relies on AI models to generate these technical questions, behavioral questions, and prep plans, the data naturally comes back from the AI (like OpenAI/Gemini) in a JSON format.
-MongoDB stores data in BSON (Binary JSON). This provides a seamless, 1-to-1 mapping from the AI's JSON output directly into your database using Mongoose.
-
-### 3. Schema Flexibility
-AI responses can sometimes be unpredictable, or you might want to introduce new features quickly (like the `// 🟢 ADDED THESE TWO FIELDS` comment in your model for `detectedSkills`). MongoDB allows you to easily evolve your schema without having to run complex database migrations (like `ALTER TABLE`) that are strictly required in relational databases.
-
-### 4. Seamless Integration with the Tech Stack
-Your project uses the standard **MERN Stack** (MongoDB, Express, React, Node.js). Because the backend is built with Javascript/Node, and MongoDB uses Javascript objects inherently, the data flows seamlessly from the Database $\rightarrow$ Backend (Mongoose) $\rightarrow$ Frontend without any friction or complex ORM mapping over-head.
-
-### Summary
-You chose MongoDB because your core data (Interview Reports) is hierarchical, schema-variable, and JSON-heavy. **MongoDB optimizes for fast reads of large, complex objects**, saving you from the headache of maintaining complex SQL migrations and queries.
-
-
------------------------------------------------------------------------------------------
-### Backend documentation:
-Here is a comprehensive, production-ready documentation guide for your backend architecture. You can use this as your core `README.md` or internal developer documentation. 
-
-It highlights not just what the files are, but the enterprise-grade optimizations (like Redis caching, rate limiting, and singleton patterns) we built into the system.
 
 ---
 
-# 🚀 Interview AI Backend Documentation
+### Routing & Application Shell
 
-## 1. System Overview
-This is the Node.js/Express backend for an AI-powered interview preparation platform. It processes user resumes (PDFs), leverages Google's Gemini AI to generate customized interview questions and dynamically tailored roadmaps, and integrates with rapid external APIs to fetch live job postings based on the user's profile.
+Routes are defined in `Frontend/src/app.routes.jsx` using `createBrowserRouter`:
 
-### Core Tech Stack
-* **Runtime:** Node.js (v22)
-* **Framework:** Express.js
-* **Primary Database:** MongoDB (via Mongoose)
-* **Caching & State:** Redis (for rate-limiting, AI caching, and JWT blacklisting)
-* **AI Engine:** Google Gemini GenAI SDK (`gemini-2.5-flash`)
-* **File Handling:** Multer (In-memory storage) & PDF-Parse
-* **PDF Generation:** Puppeteer (Headless Chromium)
-* **Containerization:** Docker & Docker Compose
+| Path | Component | Guard | Purpose |
+| :--- | :--- | :--- | :--- |
+| `/` | `Landing` | None | Public landing page |
+| `/login` | `Login` | None | User authentication |
+| `/register` | `Register` | None | New user account creation |
+| `/dashboard` | `Home` | `Protected` | Dashboard for generating and viewing reports |
+| `/interview/:interviewId` | `Interview` | `Protected` | Detailed AI-generated interview report |
 
----
+#### Authentication Guard (`Protected` Component)
 
-## 2. Directory Structure Breakdown
-
-### `/src/config/` (Infrastructure Connections)
-* **`database.js`**: Establishes the connection to MongoDB Atlas.
-* **`redis.js`**: Initializes the Redis client. Uses a deferred connection strategy to prevent race conditions during server startup.
-
-### `/src/middlewares/` (Gatekeepers)
-* **`auth.middleware.js`**: Secures protected routes. Verifies JWTs from HTTP-only cookies or Bearer headers and checks the **Redis Blacklist** to ensure logged-out tokens are instantly invalidated.
-* **`file.middleware.js`**: A Multer configuration that strictly limits uploads to **5MB** and validates the mimetype to ensure only `.pdf` files are processed, protecting the server from malicious payloads.
-
-### `/src/routes/` (Traffic Directors)
-Defines the API endpoints and applies targeted security.
-* **`auth.routes.js`**: Handles login/registration. Protected by a strict `authRateLimiter` to prevent brute-force credential stuffing.
-* **`interview.routes.js`**: Core application routes. Heavily protected by an `aiRateLimiter` (backed by Redis) to prevent users from burning through Gemini API quotas. Includes a custom error wrapper to gracefully handle Multer rejections.
-* **`job.routes.js`**: Routes for fetching live jobs, protected by a dedicated API rate limiter.
-
-### `/src/controllers/` (Business Logic)
-Handles the requests, coordinates with services, and sends JSON responses.
-* **`auth.controller.js`**: Issues highly secure, HTTP-only, `sameSite` cookies on login, and handles the Redis TTL logic for blacklisting tokens upon logout.
-* **`interview.controller.js`**: Manages the core AI generation flow. Utilizes **SHA-256 Payload Hashing** to check Redis for cached interview reports before triggering expensive AI calls.
-* **`job.controller.js`**: Fetches the user's latest resume from MongoDB, passes it to the AI for keyword extraction, and queries the external job API. Results are cached in Redis to save external API costs.
-
-### `/src/services/` (External Integrations)
-* **`ai.service.js`**: The heaviest file in the backend. 
-    * Contains highly structured **Zod Schemas** to force Gemini to return predictable, strictly-typed JSON.
-    * Implements **Graceful Degradation** (falling back to hardcoded questions if the Gemini API hits a 429 Quota limit).
-    * Manages PDF generation using a **Puppeteer Singleton Pattern** to prevent server memory leaks (re-using one browser instance and opening new tabs rather than booting new browsers).
-* **`job.service.js`**: Uses Gemini to extract a single, highly relevant job title string from a resume, then queries the `jsearch.p.rapidapi.com` API for live listings.
-
-### `/src/models/` (Data Schemas)
-* **`user.model.js`**: Mongoose schema for users. Automatically indexes unique emails and usernames for $O(\log n)$ lookup times, and utilizes `bcrypt` for secure password hashing.
-* **`interviewReport.model.js`**: Stores the AI-generated reports linked to the specific User ID.
+The `Protected` component implements a three-state logic gate:
+1. **Loading** — Renders a loading placeholder during the initial `get-me` API call.
+2. **Unauthenticated** — Redirects to `/login` via `<Navigate />`.
+3. **Authenticated** — Renders the child components.
 
 ---
 
-## 3. Core Workflows
+### Authentication Feature
 
-### A. The Authentication Flow
-1. User submits credentials to `/api/auth/login`.
-2. Controller verifies the password via `bcrypt`.
-3. A JWT is generated and placed inside an `httpOnly`, `secure` cookie to prevent Cross-Site Scripting (XSS) attacks.
-4. On logout, the remaining lifespan (TTL) of the JWT is calculated, and the token is pushed to Redis to be blacklisted until it naturally expires.
+#### State Management
 
-### B. The AI Report Generation Flow (Optimized)
-1. User uploads a PDF to `/api/interview/`.
-2. Multer parses the file into RAM (memory buffer). `pdf-parse` extracts the text.
-3. The Controller creates a unique SHA-256 hash based on the User ID, JD, and Resume text.
-4. **Cache Check:** The controller checks Redis. If a matching hash exists, it instantly returns the cached report (saving time and money).
-5. **AI Generation:** If no cache exists, the text is sent to `ai.service.js`, which forces Gemini 2.5 to output a structured JSON report.
-6. The report is saved to MongoDB, cached in Redis for 24 hours, and returned to the user.
+The `AuthContext` is the single source of truth for authentication state, tracking `user` (Object or null) and `loading` (Boolean).
+
+#### `useAuth` Hook
+
+| Method | Description |
+| :--- | :--- |
+| `handleLogin({ email, password })` | Calls login service, updates context, returns `true` on success |
+| `handleRegister({ username, email, password })` | Calls register service, returns `{ success, message }` |
+| `handleLogout()` | Calls logout service, resets `user` to `null` |
+
+**Session Restoration:** On mount, a `useEffect` calls the `getMe` endpoint to restore sessions via the HTTP-only JWT cookie.
+
+#### API Service Layer (`auth.api.js`)
+
+Uses Axios with `withCredentials: true` for cookie-based auth:
+
+| Function | Endpoint | Method |
+| :--- | :--- | :--- |
+| `register` | `/api/auth/register` | POST |
+| `login` | `/api/auth/login` | POST |
+| `logout` | `/api/auth/logout` | GET |
+| `getMe` | `/api/auth/get-me` | GET |
 
 ---
 
-## 4. Security & Performance Highlights
+### Interview Feature
 
-This backend is built for production resilience. Key features include:
+The core value proposition — AI-generated interview preparation reports, customized roadmaps, and job search.
 
-* **Redis-Backed Rate Limiting:** Prevent abusers from spamming routes. Using `RedisStore` ensures rate limits work across multiple horizontal load-balanced servers.
-* **"Trust Proxy" Configured:** Express is configured to trust upstream load balancers, ensuring rate-limiters track the real user's IP, not the hosting provider's proxy IP.
-* **No "N+1" Database Queries:** Data fetching is optimized using `.select()` and `.sort()` to pull only necessary fields into memory.
-* **Database Connection Race Conditions Handled:** Express routes are strictly loaded *after* both MongoDB and Redis successfully connect in `server.js`.
-* **Puppeteer Memory Optimization:** By passing `--disable-dev-shm-usage` and using a global browser singleton, the app safely generates PDFs even on low-memory Alpine Linux containers.
+#### `useInterview` Hook
 
----
+| Function | Description |
+| :--- | :--- |
+| `generateReport` | Triggers the AI pipeline to create a new report |
+| `getReportById` | Fetches a specific report and updates state |
+| `getReports` | Retrieves all reports for the dashboard list |
+| `getResumePdf` | Downloads a generated PDF version of the optimized resume |
 
-## 5. Deployment Guide (Docker)
+#### UI Pages
 
-The application utilizes a dual-tier Docker strategy to separate the development experience from production security.
+**Home Dashboard (`Home.jsx`):**
+- Two-panel layout: left panel for job description, right panel for resume upload (dropzone) and self-description.
+- Displays a list of previously generated reports.
 
-### Local Development
-To run the app locally with hot-reloading (nodemon):
-```bash
-docker-compose -f docker-compose.dev.yml up --build
+**Interview Detail Page (`Interview.jsx`):**
+- Tabbed navigation system with:
+  - **Technical Questions** — AI-generated queries with intention and model answers.
+  - **Behavioral Questions** — Soft-skill and situational responses.
+  - **Road Map** — Structured daily preparation plan.
+  - **Find Jobs** — Integrated live job search using the user's resume context.
+
+```mermaid
+sequenceDiagram
+    participant U as "User (Home.jsx)"
+    participant H as "useInterview Hook"
+    participant S as "interview.api.js"
+    participant B as "Backend (/api/interview)"
+    participant C as "InterviewContext"
+
+    U->>H: handleGenerateReport(resume, jd)
+    H->>H: setLoading(true)
+    H->>S: generateInterviewReport(formData)
+    S->>B: Axios.post("/api/interview/")
+    B-->>S: { interviewReport: {...} }
+    S-->>H: response.data
+    H->>C: setReport(interviewReport)
+    H->>H: setLoading(false)
+    H-->>U: navigate("/interview/:id")
 ```
-*This mounts your local files into the container, allowing instant updates when you save a file.*
 
-### Production Deployment
-To build the production-hardened image:
-```bash
-docker-compose up -d --build
+---
+
+### Public Landing Page
+
+The unauthenticated entry point (`Frontend/src/features/public/pages/Landing.jsx`) highlighting AI capabilities with clear CTAs.
+
+**Sections:**
+| Section | Purpose |
+| :--- | :--- |
+| **Hero** | Value proposition and conversion CTAs |
+| **Social Proof** | Trust building via brand association |
+| **Features Grid** | 4 feature cards (Job Matcher, Analysis, Strategy, Roadmaps) |
+| **How It Works** | 3-step numbered user journey |
+| **Footer** | Developer links (Portfolio, GitHub, LinkedIn) |
+
+---
+
+### Styling System
+
+Built on a modern SCSS architecture emphasizing **glassmorphism** design.
+
+#### Global CSS Variables (`Frontend/src/style.scss`)
+
+| Variable | Value | Purpose |
+| :--- | :--- | :--- |
+| `--bg-dark` | `#09090b` | Base background color (Zinc 950) |
+| `--glass-bg` | `rgba(255, 255, 255, 0.03)` | Semi-transparent panel background |
+| `--glass-border` | `rgba(255, 255, 255, 0.08)` | Subtle border for glass elements |
+| `--accent-color` | `#10b981` | Primary emerald green brand color |
+| `--accent-gradient` | `linear-gradient(...)` | Gradient for buttons and text highlights |
+| `--text-primary` | `#fafafa` | Main body text color |
+| `--text-secondary` | `#a1a1aa` | Muted text for descriptions |
+
+#### Key Classes
+- `.glass-panel` — Applies `backdrop-filter: blur(16px)` and subtle border for depth.
+- `.text-gradient` — Used for brand logo and hero highlights.
+- `.primary-button` — Uses `--accent-gradient` background with custom box-shadow.
+
+#### Feature-Specific Stylesheets
+- `landing.scss` — Public landing page with animations (`.pulse-dot`) and responsive `.features-grid`.
+- `home.scss` — Dashboard styling with local theme variables.
+- `interview.scss` — 3-column layout (220px sidebar, flexible content, scrollable report area).
+- `auth.form.scss` — Glassmorphism forms with `backdrop-filter: blur(16px)`.
+
+---
+
+## API Reference
+
+Base URL: `/api`. All protected routes require a valid JWT provided via an HTTP-only cookie.
+
+### Auth Endpoints (`/api/auth`)
+
+#### `POST /api/auth/register`
+Creates a new user account and issues a JWT cookie.
+
+**Access:** Public
+
+**Request Body:**
+```json
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "securepassword123"
+}
 ```
-*This uses the optimized `Dockerfile` which runs `npm ci --omit=dev`, strips out development dependencies, switches to a low-privileged `node` user to prevent root-access exploits, and allocates sufficient shared memory (`shm_size: '1gb'`) for headless Chrome to run safely.*
-----------------------------------------------------------------------------------------------
-### Rate Limiting Algorithm used in the project
 
-This project uses the **Fixed Window Counter** algorithm for rate limiting.
+**Response:** `201 Created` with `Set-Cookie: token=...`
 
-Here are the specific technical details of how it's implemented:
+---
 
-1. **Packages**: It relies on the `express-rate-limit` library for Express, coupled with `rate-limit-redis` to store the rate-limit state in a Redis database. This setup allows the rate limiting to work consistently even if backend servers are scaled to multiple instances.
-2. **Algorithm Implementation**: By default, `express-rate-limit` implements the Fixed Window Counter algorithm. It defines a rigid time window (e.g., 15 minutes), and if an IP address exceeds the maximum allowed requests (`max`) within that exact window frame, subsequent requests are blocked until the next 15-minute window begins and the Redis counter resets.
-3. **Usage in the Project**:
-   * **Authentication Limiter (`src/routes/auth.routes.js`)**: Restricts login and registration attempts to 10 requests per 15-minute window to prevent brute-forcing.
-   * **AI Feature Limiter (`src/routes/interview.routes.js`)**: Protects expensive API calls (like generating interview questions, grading tests, and creating resumes) by limiting users to 10 requests per 15-minute window.
+#### `POST /api/auth/login`
+Authenticates a user and issues a JWT cookie.
 
---------------------------------------------------------------------------------------------
+**Access:** Public
 
-docker-compose up -d
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "securepassword123"
+}
+```
 
- docker-compose logs -f backend
+**Response:** `200 OK` with `Set-Cookie: token=...`
 
-   
-   Started Redis Service: I ran docker compose up -d redis to start just the Redis container. This provides the Redis server that your local backend needs to connect to, without requiring you to run the entire backend inside Docker.
+---
+
+#### `GET /api/auth/logout`
+Terminates the session by blacklisting the token and clearing the cookie.
+
+**Access:** Public (reads token from cookies)
+
+---
+
+#### `GET /api/auth/get-me`
+Returns the currently authenticated user's profile.
+
+**Access:** Private (requires valid JWT)
+
+**Response:**
+```json
+{
+  "message": "User details fetched successfully",
+  "user": {
+    "id": "6789abcdef...",
+    "username": "johndoe",
+    "email": "john@example.com"
+  }
+}
+```
+
+---
+
+### Interview Endpoints (`/api/interview`)
+
+All endpoints require authentication via `authMiddleware.authUser`.
+
+#### `POST /api/interview/`
+Generates a full AI-driven preparation report.
+
+**Content-Type:** `multipart/form-data`
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `resume` | File (PDF) | The user's current resume |
+| `jobDescription` | String | Target job posting text |
+| `selfDescription` | String | User's additional context or career goals. |
+
+**Success Response:** `201 Created`
+```json
+{
+  "message": "Interview report generated successfully.",
+  "interviewReport": {
+    "_id": "...",
+    "user": "...",
+    "resume": "...",
+    "selfDescription": "...",
+    "jobDescription": "...",
+    "matchScore": 85,
+    "title": "Software Engineer at Google",
+    "technicalQuestions": [...],
+    "behavioralQuestions": [...],
+    "skillGaps": [...],
+    "preparationPlan": [...],
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+}
+```
+
+**Implementation Details:**
+The controller uses `pdf-parse` to extract text from the uploaded file buffer. This text, along with the strings from `req.body`, is passed to the AI service. The AI response is merged with the input data and user ID to create a new `InterviewReport` document in MongoDB.
+
+```mermaid
+sequenceDiagram
+    participant Client as "Frontend (interview.api.js)"
+    participant Router as "interview.routes.js"
+    participant Middleware as "file.middleware (Multer)"
+    participant Controller as "interview.controller.js"
+    participant AI as "ai.service.js (Gemini)"
+    participant DB as "interviewReportModel (MongoDB)"
+
+    Client->>Router: POST /api/interview/ (FormData)
+    Router->>Middleware: upload.single("resume")
+    Middleware->>Controller: generateInterViewReportController
+    Controller->>Controller: pdfParse.PDFParse(buffer).getText()
+    Controller->>AI: generateInterviewReport(resume, selfDesc, jobDesc)
+    AI-->>Controller: Structured JSON Report
+    Controller->>DB: create({ user: req.user.id, ...reportData })
+    DB-->>Controller: Saved Document
+    Controller-->>Client: 201 Created + interviewReport
+```
+
+---
+
+#### `GET /api/interview/`
+Retrieves a summary list of all reports generated by the logged-in user.
+
+**Access:** Private (requires valid JWT)
+
+**Response:** `200 OK`
+
+The response is optimized for a dashboard view by excluding heavy fields like full question lists, preparation plans, resume text, self-description, and job description.
+
+```json
+{
+  "message": "Interview reports fetched successfully.",
+  "interviewReports": [
+    {
+      "_id": "...",
+      "title": "Software Engineer at Google",
+      "matchScore": 85,
+      "user": "...",
+      "createdAt": "..."
+    }
+  ]
+}
+```
+
+---
+
+#### `GET /api/interview/report/:interviewId`
+Fetches the complete details of a specific interview report.
+
+**Access:** Private (requires valid JWT)
+
+**URL Parameters:**
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `interviewId` | String | The MongoDB `_id` of the interview report. |
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Interview report fetched successfully.",
+  "interviewReport": {
+    "_id": "...",
+    "user": "...",
+    "resume": "...",
+    "selfDescription": "...",
+    "jobDescription": "...",
+    "matchScore": 85,
+    "title": "Software Engineer at Google",
+    "technicalQuestions": [
+      { "question": "...", "intention": "...", "answer": "..." }
+    ],
+    "behavioralQuestions": [
+      { "question": "...", "intention": "...", "answer": "..." }
+    ],
+    "skillGaps": [
+      { "skill": "...", "severity": "low|medium|high" }
+    ],
+    "preparationPlan": [
+      { "day": 1, "focus": "...", "tasks": ["..."] }
+    ],
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+}
+```
+
+**Error Response:** `404 Not Found` — If the report does not exist or does not belong to the authenticated user.
+
+**Security Note:** The controller verifies that the requested `interviewId` belongs to `req.user.id` to prevent unauthorized access to other users' data.
+
+---
+
+#### `POST /api/interview/resume/pdf/:interviewReportId`
+Triggers the AI to rewrite the user's resume based on the job description and generates a downloadable, ATS-friendly PDF.
+
+**Access:** Private (requires valid JWT)
+
+**URL Parameters:**
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `interviewReportId` | String | The MongoDB `_id` of the interview report to base the resume on. |
+
+**Response Type:** `application/pdf` (Binary Blob)
+
+**Response Headers:**
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename=resume_{interviewReportId}.pdf
+```
+
+**Process Flow:**
+1. Retrieves the original `resume`, `jobDescription`, and `selfDescription` from the stored `interviewReport` document.
+2. Calls `generateResumePdf` which uses Google Gemini to generate professional, ATS-friendly HTML.
+3. Uses **Puppeteer** (headless Chrome) to render the HTML into a PDF buffer (A4 format, custom margins).
+4. Sets response headers for file attachment download and sends the binary PDF buffer.
+
+**Error Response:** `404 Not Found` — If the interview report does not exist.
+
+---
+
+### Interview Endpoints — Entity Mapping
+
+```mermaid
+graph TD
+    subgraph "API Layer"
+        R["interviewRouter (interview.routes.js)"]
+    end
+
+    subgraph "Logic Layer"
+        C["interviewController (interview.controller.js)"]
+        A["aiService (ai.service.js)"]
+    end
+
+    subgraph "Data Layer"
+        M["interviewReportModel (interviewReport.model.js)"]
+        P["pdf-parse"]
+    end
+
+    R -- "POST /" --> C
+    C -- "Extract Text" --> P
+    C -- "Generate Content" --> A
+    C -- "Save/Query" --> M
+    
+    R -- "POST /resume/pdf/:id" --> C
+    C -- "Render PDF" --> A
+```
+
+#### Key Functions Reference
+
+| Function Name | Location | Responsibility |
+| :--- | :--- | :--- |
+| `generateInterViewReportController` | `interview.controller.js` | Orchestrates PDF parsing, AI calling, and DB saving. |
+| `getInterviewReportByIdController` | `interview.controller.js` | Fetches a single report with ownership verification. |
+| `getAllInterviewReportsController` | `interview.controller.js` | Returns optimized summary list for dashboard. |
+| `generateResumePdfController` | `interview.controller.js` | Handles PDF generation requests and streams the response. |
+
+---
+
+### Job Search Endpoint (`/api/jobs`)
+
+The `/api/jobs` endpoint provides a specialized interface for retrieving live job listings based on a user's professional profile. It implements a two-stage pipeline that first uses Google Gemini AI to extract an optimized search query from the user's most recent resume and then queries the JSearch RapidAPI to fetch real-time job openings.
+
+#### `GET /api/jobs/search`
+Retrieves a list of active job postings relevant to the user's background.
+
+**Access:** Private (requires valid JWT)
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `location` | String | Yes | The geographic area to search for jobs (e.g., "New York", "Remote"). |
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Jobs fetched successfully",
+  "searchQuery": "Senior React Developer",
+  "jobs": [
+    {
+      "job_id": "...",
+      "employer_name": "...",
+      "job_title": "...",
+      "job_apply_link": "...",
+      "job_description": "...",
+      "job_city": "...",
+      "job_state": "..."
+    }
+  ]
+}
+```
+
+**Process Flow:**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as "searchJobsController (job.controller.js)"
+    participant DB as "interviewReportModel (MongoDB)"
+    participant AI as "getJobSearchQueryFromResume (Gemini AI)"
+    participant JSearch as "fetchLiveJobs (RapidAPI)"
+
+    Client->>Controller: GET /api/jobs/search?location=X
+    Controller->>DB: findOne({ user: req.user.id }).sort({ createdAt: -1 })
+    DB-->>Controller: Latest Resume Text
+    
+    Controller->>AI: getJobSearchQueryFromResume(resumeText)
+    Note over AI: gemini-1.5-flash extracts optimized job title
+    AI-->>Controller: searchQuery (e.g., "Frontend Engineer")
+    
+    Controller->>JSearch: fetchLiveJobs(searchQuery, location)
+    Note over JSearch: GET jsearch.p.rapidapi.com/search
+    JSearch-->>Controller: Array of Job Objects
+    
+    Controller-->>Client: 200 OK (searchQuery + jobs array)
+```
+
+**Component Breakdown:**
+1. **Resume Extraction** — The controller queries `interviewReportModel` to find the most recent report by the authenticated user. The `resume` field (plain text) serves as context for the AI query.
+2. **AI Query Generation** — `getJobSearchQueryFromResume` uses `gemini-1.5-flash` to analyze the resume and return a highly accurate job title string. Falls back to "Software Engineer" on failure.
+3. **External Job Fetching** — `fetchLiveJobs` calls the JSearch API via RapidAPI. The query is formatted as `${searchQuery} in ${location}`.
+
+**Error Handling:**
+
+| Status Code | Scenario |
+| :--- | :--- |
+| `400 Bad Request` | Missing `location` query parameter |
+| `401 Unauthorized` | Invalid or missing JWT cookie |
+| `404 Not Found` | User has no previous interview reports |
+| `500 Server Error` | External API failure or DB connection issue |
+
+---
+
+## Glossary
+
+| Term | Definition |
+| :--- | :--- |
+| **Interview Report** | The primary data entity containing AI-generated analysis, questions, and preparation plans. Stored in the `interviewreports` MongoDB collection. |
+| **Skill Gap** | A discrepancy identified by AI between a user's resume and the requirements of a job description. Includes a `severity` level (low/medium/high). |
+| **Match Score** | A numerical value (0-100) representing the compatibility between a candidate and a job description. |
+| **Preparation Plan** | A day-wise roadmap generated by Gemini to help users study for a specific role. Contains `day`, `focus`, and `tasks` fields. |
+| **Glassmorphism** | The UI design language used throughout the frontend, characterized by translucent backgrounds (`backdrop-filter: blur`) and subtle borders. |
+| **JWT (JSON Web Token)** | Used for stateless authentication. The token is stored in a browser HTTP-only cookie and verified on each protected request. |
+| **Token Blacklisting** | A security measure where logged-out tokens are stored in MongoDB (`blacklistTokens` collection) to prevent reuse before they expire. |
+| **Auth Middleware (`authUser`)** | A function that intercepts requests to protected routes, checks for a cookie, verifies it against the blacklist, and validates the JWT signature. |
+| **Zod Schema** | A TypeScript-first schema declaration and validation library used to force the AI to return valid JSON that matches the backend models. |
+| **zod-to-json-schema** | A utility that converts Zod definitions into JSON schemas, which are then passed to the Google Generative AI `responseSchema` configuration. |
+| **Puppeteer** | A headless browser used on the backend to render AI-generated HTML into a professional PDF resume (A4 format). |
+| **Multer** | Express middleware for handling `multipart/form-data`, specifically for uploading resume PDF files. Uses `memoryStorage()` with a 3MB limit. |
+| **JSearch API** | A RapidAPI service used to fetch real-time job listings based on AI-generated search queries. |
+| **Gemini (Google GenAI)** | The Large Language Model used for text analysis and generation. The system uses `gemini-1.5-flash` and `gemini-3-flash-preview` models. |
+
+```mermaid
+graph TD
+    subgraph "Natural Language Space"
+        JD["Job Description (Text)"]
+        Res["Resume (PDF/Text)"]
+        SD["Self Description (Text)"]
+    end
+
+    subgraph "AI Service (Processing)"
+        Schema["Zod: interviewReportSchema"]
+        Prompt["Gemini Prompt Construction"]
+        Gemini["Google GenAI"]
+    end
+
+    subgraph "Code Entity Space (Mongoose)"
+        IR["InterviewReport Model"]
+        TQ["technicalQuestions Array"]
+        BQ["behavioralQuestions Array"]
+        SG["skillGaps Array"]
+        PP["preparationPlan Array"]
+    end
+
+    JD & Res & SD --> Prompt
+    Prompt --> Gemini
+    Schema -. "Enforces Structure" .-> Gemini
+    Gemini -- "Structured JSON" --> IR
+    IR --> TQ & BQ & SG & PP
+```
+
+### Mongoose Sub-Schemas Reference
+
+| Schema Name | Key Fields | Purpose |
+| :--- | :--- | :--- |
+| `technicalQuestionSchema` | `question`, `intention`, `answer` | Maps technical concepts to interviewer expectations. |
+| `behavioralQuestionSchema` | `question`, `intention`, `answer` | Focuses on soft skills and situational responses. |
+| `skillGapSchema` | `skill`, `severity` (low/medium/high) | Identifies weaknesses in the candidate's profile. |
+| `preparationPlanSchema` | `day`, `focus`, `tasks` | Provides a structured study timeline. |
