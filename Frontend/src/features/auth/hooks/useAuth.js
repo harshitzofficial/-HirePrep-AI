@@ -9,7 +9,7 @@ export const useAuth = () => {
     const context = useContext(AuthContext)
     const { user, setUser, loading, setLoading } = context
 
-
+//Makes API call to log in user, updates user state, returns success/failure
     const handleLogin = async ({ email, password }) => {
         setLoading(true);
         try {
@@ -24,6 +24,8 @@ export const useAuth = () => {
             setLoading(false);
         }
     };
+
+    //Makes API call to register user, sets user data, returns error message if fails
     const handleRegister = async ({ username, email, password }) => {
         setLoading(true);
         try {
@@ -39,6 +41,8 @@ export const useAuth = () => {
         }
     };
 
+    //Calls logout API and clears user state
+
     const handleLogout = async () => {
         setLoading(true)
         try {
@@ -51,6 +55,8 @@ export const useAuth = () => {
         }
     }
 
+
+    //On component mount, fetches current user data (to persist login across page refreshes)
     useEffect(() => {
 
         const getAndSetUser = async () => {
@@ -65,7 +71,7 @@ export const useAuth = () => {
 
         getAndSetUser()
 
-    }, [])
+    },[])
 
     return { user, loading, handleRegister, handleLogin, handleLogout }
 }

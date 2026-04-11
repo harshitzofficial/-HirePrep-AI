@@ -174,14 +174,6 @@
     border-color: rgba(16, 185, 129, 0.4);
 }
 
-.feature-icon {
-    font-size: 2.2rem;
-    margin-bottom: 1.5rem;
-    display: inline-flex;
-    padding: 1rem;
-    background: rgba(16, 185, 129, 0.1);
-    border-radius: 1rem;
-}
 
 .feature-card h3 {
     margin-bottom: 1rem;
@@ -194,6 +186,68 @@
     line-height: 1.6;
 }
 
+/* Premium Icon Container */
+.premium-icon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: rgba(0, 255, 136, 0.08); /* Soft green tint */
+  color: #00ff88; /* Vibrant green stroke */
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  box-shadow: inset 0 0 20px rgba(0, 255, 136, 0.05);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  svg {
+    transition: all 0.4s ease;
+  }
+}
+
+/* Card Hover Effects: Makes the icon box pop and glow */
+.feature-card:hover .premium-icon {
+  background: rgba(0, 255, 136, 0.15);
+  border-color: rgba(0, 255, 136, 0.5);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.2), inset 0 0 20px rgba(0, 255, 136, 0.1);
+  transform: translateY(-5px);
+}
+
+/* Individual Icon Hover Animations */
+
+/* ✨ Sparkles: Rotates and scales up */
+.feature-card:hover .icon-sparkles svg {
+  transform: rotate(15deg) scale(1.1);
+}
+
+/* 📄 Scan: Gently moves up and down like scanning a document */
+.feature-card:hover .icon-scan svg {
+  animation: scanHover 1s ease-in-out infinite alternate;
+}
+@keyframes scanHover {
+  0% { transform: translateY(-2px); }
+  100% { transform: translateY(2px); }
+}
+
+/* 🎯 Target: Pulses forward */
+.feature-card:hover .icon-target svg {
+  transform: scale(1.15);
+}
+
+/* 🗺️ Route: Moves diagonally forward */
+.feature-card:hover .icon-route svg {
+  transform: translate(3px, -3px);
+}
+
+/* 🎙️ Mic: Subtle glowing heartbeat effect */
+.feature-card:hover .icon-mic svg {
+  animation: micPulse 1.2s infinite alternate;
+}
+@keyframes micPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0px #00ff88); }
+  100% { transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.8)); }
+}
 /* How It Works */
 .how-it-works {
     max-width: 1000px;
@@ -207,9 +261,14 @@
 
 .steps-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 3rem;
-    position: relative;
+    // Change this from repeat(3, 1fr) to repeat(4, 1fr)
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 2rem;
+    
+    // Make sure it stacks nicely on mobile!
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
 }
 
 .step-item {

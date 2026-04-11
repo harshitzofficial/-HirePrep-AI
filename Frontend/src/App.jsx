@@ -15,3 +15,17 @@ function App() {
 }
 
 export default App
+
+/**
+main.jsx
+   ↓
+<App />
+   ↓
+AuthProvider → manages user login state
+   ↓
+InterviewProvider → manages interview-related data
+   ↓
+RouterProvider → loads pages based on URL
+   ↓
+Pages → LiveInterview, Dashboard, etc.
+ */

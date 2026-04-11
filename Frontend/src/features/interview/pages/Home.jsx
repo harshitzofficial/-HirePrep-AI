@@ -2,10 +2,13 @@ import React, { useState, useRef } from 'react'
 import "../style/home.scss"
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate } from 'react-router'
+import { useAuth } from '../../auth/hooks/useAuth.js'
 
 const Home = () => {
 
     const { loading, generateReport, reports } = useInterview()
+    const { user, handleLogout } = useAuth() 
+
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
     
@@ -51,6 +54,34 @@ const Home = () => {
 
     return (
         <div className='home-page'>
+
+            {/* 🟢 NEW: Top Bar with User Info and Logout */}
+            <nav className='top-navbar'>
+                <div className='top-navbar__content'>
+                    {/* Empty left side to push everything right, or you can add a Logo here later! */}
+                    <div className='brand'></div>
+
+                    <div className='user-menu'>
+                        {user && (
+                            <div className='user-profile'>
+                                <div className='avatar'>
+                                    {/* Grabs the first letter of their username for a cool profile icon */}
+                                    {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <span className='username'>Hello, {user.username || 'User'}</span>
+                            </div>
+                        )}
+                        <button onClick={handleLogout} className='logout-button'>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </nav>
 
             {/* Page Header */}
             <header className='page-header'>

@@ -12,7 +12,7 @@ const Login = () => {
     const [ password, setPassword ] = useState("")
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        e.preventDefault();  //Stops page reload ✅ Prevents the default browser behavior
         
         // 1. Capture the result of the login attempt
         const success = await handleLogin({ email, password });

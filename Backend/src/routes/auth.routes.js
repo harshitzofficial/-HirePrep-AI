@@ -1,39 +1,58 @@
-const { Router } = require('express')
-const authController = require("../controllers/auth.controller")
-const authMiddleware = require("../middlewares/auth.middleware")
+const { Router } = require('express');
+const authController = require("../controllers/auth.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
 
-const authRouter = Router()
+const rateLimit = require("express-rate-limit");
+const { RedisStore } = require("rate-limit-redis");
+const redisClient = require("../config/redis");
+
+const authRouter = Router();
+
+// --- Define the Strict Auth Rate Limiter ---
+// Blocks bots from brute-forcing passwords or spamming fake accounts
+const authRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Limit to 10 attempts per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { trustProxy: false, xForwardedForHeader: false, default: false },
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+    }),
+    message: { 
+        message: "Too many authentication attempts. Please try again in 15 minutes." 
+    }
+});
 
 /**
  * @route POST /api/auth/register
  * @description Register a new user
  * @access Public
  */
-authRouter.post("/register", authController.registerUserController)
-
+authRouter.post("/register", authRateLimiter, authController.registerUserController);
 
 /**
  * @route POST /api/auth/login
  * @description login user with email and password
  * @access Public
  */
-authRouter.post("/login", authController.loginUserController)
-
+authRouter.post("/login", authRateLimiter, authController.loginUserController);
 
 /**
- * @route GET /api/auth/logout
+ * @route POST /api/auth/logout
  * @description clear token from user cookie and add the token in blacklist
  * @access public
  */
-authRouter.get("/logout", authController.logoutUserController)
-
+// 🚨 CHANGED TO POST TO PREVENT CSRF ATTACKS
+authRouter.post("/logout", authController.logoutUserController);
 
 /**
  * @route GET /api/auth/get-me
  * @description get the current logged in user details
  * @access private
  */
-authRouter.get("/get-me", authMiddleware.authUser, authController.getMeController)
+authRouter.get("/get-me", authMiddleware.authUser, authController.getMeController);
+
+module.exports = authRouter;
 
 
-module.exports = authRouter

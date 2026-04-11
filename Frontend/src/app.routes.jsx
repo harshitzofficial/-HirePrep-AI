@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
         path:"/interview/:interviewId",
         element: <Protected><Interview /></Protected>
     },
-    // 2. Add the Live Interview route
+    //Add the Live Interview route
     {
         path: "/interview/:interviewId/live",
         element: <Protected><LiveInterview /></Protected>

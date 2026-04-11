@@ -79,6 +79,12 @@ const interviewReportSchema = new mongoose.Schema({
         min: 0,
         max: 100,
     },
+    detectedSkills: [{
+        type: String
+    }],
+    identifiedProjects: [{
+        type: String
+    }],
     technicalQuestions: [ technicalQuestionSchema ],
     behavioralQuestions: [ behavioralQuestionSchema ],
     skillGaps: [ skillGapSchema ],
@@ -93,7 +99,7 @@ const interviewReportSchema = new mongoose.Schema({
     }
 }, {
     timestamps: true
-})
+});
 
 
 const interviewReportModel = mongoose.model("InterviewReport", interviewReportSchema);

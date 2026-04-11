@@ -1,11 +1,23 @@
 const pdfParse = require("pdf-parse");
 const { generateInterviewReport, generateResumePdf } = require("../services/ai.service");
 const interviewReportModel = require("../models/interviewReport.model");
-const { generateLiveQuestions, evaluateLiveInterview } = require("../services/ai.service");
+const { generateLiveQuestions, evaluateLiveInterview, evaluateSingleAnswer } = require("../services/ai.service");
+const { generateDynamicRoadmap } = require("../services/ai.service");
 
 // 🚀 Redis & Crypto for Caching
 const redisClient = require("../config/redis");
 const crypto = require("crypto"); 
+
+const generateDynamicRoadmapController = async (req, res) => {
+    try {
+        const { jobDescription, resumeText, days } = req.body;
+        const data = await generateDynamicRoadmap({ jobDescription, resumeText, days });
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("Roadmap Generation Error:", error);
+        res.status(500).json({ message: "Failed to generate roadmap" });
+    }
+};
 
 /**
  * @description Controller to generate interview report based on user self description, resume and job description.
@@ -76,59 +88,72 @@ async function generateInterViewReportController(req, res) {
  * @description Controller to get interview report by interviewId.
  */
 async function getInterviewReportByIdController(req, res) {
-    const { interviewId } = req.params;
+    try {
+        const { interviewId } = req.params;
 
-    const interviewReport = await interviewReportModel.findOne({ _id: interviewId, user: req.user.id });
+        const interviewReport = await interviewReportModel.findOne({ _id: interviewId, user: req.user.id });
 
-    if (!interviewReport) {
-        return res.status(404).json({
-            message: "Interview report not found."
+        if (!interviewReport) {
+            return res.status(404).json({
+                message: "Interview report not found."
+            });
+        }
+
+        res.status(200).json({
+            message: "Interview report fetched successfully.",
+            interviewReport
         });
     }
-
-    res.status(200).json({
-        message: "Interview report fetched successfully.",
-        interviewReport
-    });
+    catch (error) {
+        console.error("Fetch Report Error:", error);
+        res.status(500).json({ message: "Invalid ID or Server Error." });
+    }
 }
 
 /** * @description Controller to get all interview reports of logged in user.
  */
 async function getAllInterviewReportsController(req, res) {
-    const interviewReports = await interviewReportModel.find({ user: req.user.id })
-        .sort({ createdAt: -1 })
-        .select("-resume -selfDescription -jobDescription -__v -technicalQuestions -behavioralQuestions -skillGaps -preparationPlan");
+    try {
+        const interviewReports = await interviewReportModel.find({ user: req.user.id })
+            .sort({ createdAt: -1 })
+            .select("-resume -selfDescription -jobDescription -__v -technicalQuestions -behavioralQuestions -skillGaps -preparationPlan");
 
-    res.status(200).json({
-        message: "Interview reports fetched successfully.",
-        interviewReports
-    });
+        res.status(200).json({
+            message: "Interview reports fetched successfully.",
+            interviewReports
+        });
+    } catch (error) {
+        console.error("Fetch All Reports Error:", error);
+        res.status(500).json({ message: "Failed to fetch reports." });
+    }
 }
 
 /**
  * @description Controller to generate resume PDF based on user self description, resume and job description.
  */
 async function generateResumePdfController(req, res) {
-    const { interviewReportId } = req.params;
+    try {
+        const { interviewReportId } = req.params;
 
-    const interviewReport = await interviewReportModel.findById(interviewReportId);
+        const interviewReport = await interviewReportModel.findById(interviewReportId);
 
-    if (!interviewReport) {
-        return res.status(404).json({
-            message: "Interview report not found."
+        if (!interviewReport) {
+            return res.status(404).json({ message: "Interview report not found." });
+        }
+
+        const { resume, jobDescription, selfDescription } = interviewReport;
+        const pdfBuffer = await generateResumePdf({ resume, jobDescription, selfDescription });
+
+        res.set({
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename=resume_${interviewReportId}.pdf`
         });
+
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error("PDF Generation Error:", error);
+        res.status(500).json({ message: "Failed to generate PDF." });
     }
-
-    const { resume, jobDescription, selfDescription } = interviewReport;
-
-    const pdfBuffer = await generateResumePdf({ resume, jobDescription, selfDescription });
-
-    res.set({
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename=resume_${interviewReportId}.pdf`
-    });
-
-    res.send(pdfBuffer);
 }
 
 /**
@@ -136,13 +161,16 @@ async function generateResumePdfController(req, res) {
  */
 const getLiveQuestionsController = async (req, res) => {
     try {
-        const { jobDescription, selfDescription, resumeText, userCommand } = req.body; 
+        // 🟢 1. Extract interviewType from the incoming request body
+        const { jobDescription, selfDescription, resumeText, userCommand, interviewType } = req.body; 
         
+        // 🟢 2. Pass it down to the AI service
         const data = await generateLiveQuestions({ 
             jobDescription, 
             selfDescription, 
             resumeText, 
-            userCommand
+            userCommand,
+            interviewType 
         });
         
         res.status(200).json(data);
@@ -163,12 +191,29 @@ const evaluateInterviewController = async (req, res) => {
         res.status(500).json({ message: "Failed to evaluate interview." });
     }
 };
-
+const evaluateSingleAnswerController = async (req, res) => {
+    try {
+        // Extract the specific question, the user's answer, and the JD
+        const { question, answer, jobDescription } = req.body;
+        
+        // Pass to the AI service (Make sure you imported evaluateSingleAnswer at the top!)
+        // const { evaluateSingleAnswer } = require("../services/ai.service");
+        const data = await evaluateSingleAnswer({ question, answer, jobDescription });
+        
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("Single Evaluation Error:", error);
+        res.status(500).json({ message: "Failed to generate instant feedback." });
+    }
+};
 module.exports = { 
     generateInterViewReportController, 
     getInterviewReportByIdController, 
     getAllInterviewReportsController, 
     generateResumePdfController, 
     getLiveQuestionsController, 
-    evaluateInterviewController 
+    evaluateInterviewController ,
+    evaluateSingleAnswerController,
+    generateDynamicRoadmapController
+    
 };

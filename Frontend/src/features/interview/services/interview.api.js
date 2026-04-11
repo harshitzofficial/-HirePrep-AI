@@ -74,3 +74,17 @@ export const evaluateInterview = async (data) => {
     const response = await api.post('/api/interview/live/evaluate', data); // Added /api
     return response.data;
 };
+
+
+export const evaluateSingleAnswer = async (payload) => {
+    // ✅ FIX: Use the "api" instance so it hits localhost:3000 and sends cookies
+    const response = await api.post("/api/interview/live/evaluate-single", payload);
+    return response.data;
+};
+
+
+export const generateDynamicRoadmap = async (payload) => {
+    // payload will contain: { jobDescription, resumeText, days }
+    const response = await api.post("/api/interview/roadmap/dynamic", payload);
+    return response.data;
+};

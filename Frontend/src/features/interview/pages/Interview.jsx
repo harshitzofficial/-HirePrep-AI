@@ -2,19 +2,17 @@ import React, { useState, useEffect } from 'react'
 import '../style/interview.scss'
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate, useParams } from 'react-router'
-import { searchLiveJobs } from '../services/interview.api'
-
-
+import { searchLiveJobs, generateDynamicRoadmap } from '../services/interview.api' // 🟢 Imported new API
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
     { id: 'behavioral', label: 'Behavioral Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>) },
-    { id: 'roadmap', label: 'Road Map', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>) },
+    { id: 'roadmap', label: 'Custom Road Map', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>) },
     { id: 'jobs', label: 'Find Jobs', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>) },
 ]
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-const QuestionCard = ({ item, index }) => {
+// ── Sub-components (QuestionCard, RoadMapDay, JobSearchSection stay EXACTLY the same) ──
+const QuestionCard = ({ item, index }) => { /* ... keep your existing code ... */ 
     const [ open, setOpen ] = useState(false)
     return (
         <div className='q-card'>
@@ -41,23 +39,25 @@ const QuestionCard = ({ item, index }) => {
     )
 }
 
-const RoadMapDay = ({ day }) => (
-    <div className='roadmap-day'>
-        <div className='roadmap-day__header'>
-            <span className='roadmap-day__badge'>Day {day.day}</span>
-            <h3 className='roadmap-day__focus'>{day.focus}</h3>
+const RoadMapDay = ({ day }) => { /* ... keep your existing code ... */ 
+    return (
+        <div className='roadmap-day'>
+            <div className='roadmap-day__header'>
+                <span className='roadmap-day__badge'>Day {day.day}</span>
+                <h3 className='roadmap-day__focus'>{day.focus}</h3>
+            </div>
+            <ul className='roadmap-day__tasks'>
+                {day.tasks.map((task, i) => (
+                    <li key={i}>
+                        <span className='roadmap-day__bullet' />
+                        {task}
+                    </li>
+                ))}
+            </ul>
         </div>
-        <ul className='roadmap-day__tasks'>
-            {day.tasks.map((task, i) => (
-                <li key={i}>
-                    <span className='roadmap-day__bullet' />
-                    {task}
-                </li>
-            ))}
-        </ul>
-    </div>
-)
-// ── Job Search Sub-component ──────────────────────────────────────────────────
+    )
+}
+
 const JobSearchSection = () => {
     const [location, setLocation] = useState('');
     const [jobs, setJobs] = useState([]);
@@ -81,39 +81,46 @@ const JobSearchSection = () => {
     };
 
     return (
-        <section className="job-search-section">
-            <div className='content-header'>
+        <section className="job-search-section" style={{ width: '100%', textAlign: 'left' }}>
+            <div className='content-header' style={{ marginBottom: '0.5rem' }}>
                 <h2>Find Your Next Role</h2>
                 {jobs.length > 0 && <span className='content-header__count'>{jobs.length} matches</span>}
             </div>
             
-            <p style={{ color: '#a0a0a0', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                We'll analyze your uploaded resume and find the best active job listings in your area.
+            <p style={{ color: '#a0a0a0', marginBottom: '1.5rem', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                We'll analyze your uploaded resume and find the best active job listings in your area tailored specifically to your skill set.
             </p>
 
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            {/* 🟢 This flex row keeps the input and button side-by-side */}
+            <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'row', gap: '1rem', width: '100%', marginBottom: '2rem' }}>
                 <input 
                     type="text" 
                     placeholder="Enter city or 'remote' (e.g., New York, NY)" 
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     style={{ 
-                        flex: 1, 
-                        padding: '0.8rem 1rem', 
+                        flex: 1, // Makes the input stretch to fill available space
+                        padding: '0.8rem 1.2rem', 
                         borderRadius: '8px', 
-                        border: '1px solid #333',
-                        backgroundColor: '#1a1a1a', // Matching your dark theme
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        backgroundColor: 'rgba(20, 20, 20, 0.8)', 
                         color: 'white',
-                        outline: 'none'
+                        outline: 'none',
+                        fontSize: '1rem'
                     }}
                 />
-                <button type="submit" className="button primary-button" disabled={isSearching}>
+                <button 
+                    type="submit" 
+                    className="button primary-button" 
+                    disabled={isSearching}
+                    style={{ whiteSpace: 'nowrap', padding: '0 1.5rem' }} // Prevents button text from wrapping
+                >
                     {isSearching ? "Searching..." : "Search Jobs"}
                 </button>
             </form>
 
             {searchedQuery && (
-                <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: 'rgba(0, 255, 136, 0.1)', borderRadius: '8px', border: '1px solid rgba(0, 255, 136, 0.2)' }}>
+                <div style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem', backgroundColor: 'rgba(0, 255, 136, 0.05)', borderRadius: '8px', border: '1px solid rgba(0, 255, 136, 0.2)' }}>
                     <p style={{ margin: 0, color: '#00ff88', fontSize: '0.9rem' }}>
                         🤖 AI searched based on your resume for: <strong>{searchedQuery}</strong>
                     </p>
@@ -124,15 +131,15 @@ const JobSearchSection = () => {
                 {jobs.map((job, index) => (
                     <div key={index} className='q-card' style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <div className='q-card__header' style={{ cursor: 'default' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>{job.job_title}</h3>
-                                <span style={{ color: '#00ff88', fontSize: '0.85rem', fontWeight: 'bold', marginTop: '4px' }}>
+                                <span style={{ color: '#00ff88', fontSize: '0.85rem', fontWeight: 'bold' }}>
                                     {job.employer_name} • {job.job_city}, {job.job_state}
                                 </span>
                             </div>
                         </div>
                         <div className='q-card__body' style={{ marginTop: 0, paddingTop: '0.5rem' }}>
-                            <p style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                            <p style={{ color: '#ccc', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '1rem' }}>
                                 {job.job_description?.substring(0, 200)}...
                             </p>
                             <a 
@@ -141,18 +148,23 @@ const JobSearchSection = () => {
                                 rel="noopener noreferrer"
                                 className="button"
                                 style={{ 
-                                    display: 'inline-block',
-                                    marginTop: '1rem', 
-                                    backgroundColor: '#2a2a2a', 
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
                                     color: '#fff', 
                                     textDecoration: 'none',
-                                    border: '1px solid #444',
-                                    padding: '0.5rem 1rem',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    padding: '0.6rem 1.2rem',
                                     borderRadius: '6px',
-                                    fontSize: '0.85rem'
+                                    fontSize: '0.85rem',
+                                    transition: 'all 0.2s'
                                 }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
                             >
-                                Apply Externally ↗
+                                Apply Externally 
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
                             </a>
                         </div>
                     </div>
@@ -167,16 +179,53 @@ const Interview = () => {
     const [ activeNav, setActiveNav ] = useState('technical')
     const { report, getReportById, loading, getResumePdf } = useInterview()
     const { interviewId } = useParams()
-
     const navigate = useNavigate()
 
+    // 🟢 SVG Score State
+    const [animatedScore, setAnimatedScore] = useState(0);
+
+    // 🟢 NEW: Custom Roadmap States
+    const [customDays, setCustomDays] = useState(7);
+    const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
+    const [activeRoadmap, setActiveRoadmap] = useState([]); // Will hold either default or custom roadmap
+
     useEffect(() => {
-        if (interviewId) {
-            getReportById(interviewId)
-        }
+        if (interviewId) getReportById(interviewId)
     }, [ interviewId ])
 
+    useEffect(() => {
+        if (report?.matchScore) {
+            const timer = setTimeout(() => setAnimatedScore(report.matchScore), 150);
+            return () => clearTimeout(timer);
+        }
+    }, [report?.matchScore]);
 
+    // 🟢 Set the default roadmap when the report first loads
+    useEffect(() => {
+        if (report?.preparationPlan) {
+            setActiveRoadmap(report.preparationPlan);
+        }
+    }, [report?.preparationPlan]);
+
+    // 🟢 NEW: Function to generate custom roadmap
+    const handleGenerateCustomRoadmap = async () => {
+        if (customDays < 1 || customDays > 30) return alert("Please select between 1 and 30 days.");
+        
+        setIsGeneratingRoadmap(true);
+        try {
+            const data = await generateDynamicRoadmap({
+                jobDescription: report.jobDescription,
+                resumeText: report.resumeText || report.resumeContent || "",
+                days: customDays
+            });
+            // Update the UI with the fresh roadmap!
+            setActiveRoadmap(data.preparationPlan);
+        } catch (error) {
+            alert("Failed to generate custom roadmap. Please check backend.");
+        } finally {
+            setIsGeneratingRoadmap(false);
+        }
+    };
 
     if (loading || !report) {
         return (
@@ -186,10 +235,18 @@ const Interview = () => {
         )
     }
 
-    const scoreColor =
-        report.matchScore >= 80 ? 'score--high' :
-            report.matchScore >= 60 ? 'score--mid' : 'score--low'
+    const radius = 54;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference - (animatedScore / 100) * circumference;
 
+    const getScoreData = (score) => {
+        if (!score) return { color: "#555", text: "Calculating...", glow: "transparent" };
+        if (score >= 80) return { color: "#00ff88", text: "Strong match for this role", glow: "rgba(0, 255, 136, 0.4)" };
+        if (score >= 50) return { color: "#ffc107", text: "Good potential for this role", glow: "rgba(255, 193, 7, 0.4)" };
+        return { color: "#ff4d4d", text: "Needs improvement", glow: "rgba(255, 77, 77, 0.4)" };
+    };
+
+    const { color, text, glow } = getScoreData(report.matchScore);
 
     return (
         <div className='interview-page'>
@@ -197,6 +254,7 @@ const Interview = () => {
 
                 {/* ── Left Nav ── */}
                 <nav className='interview-nav'>
+                    {/* ... (Keep your existing Left Nav exactly the same) ... */}
                     <div className="nav-content">
                         <p className='interview-nav__label'>Sections</p>
                         {NAV_ITEMS.map(item => (
@@ -210,30 +268,10 @@ const Interview = () => {
                             </button>
                         ))}
                     </div>
-                    <button
-                        onClick={() => navigate(`/interview/${interviewId}/live`)}
-                        className='button live-button'
-                        style={{ 
-                            marginBottom: '0.8rem', 
-                            backgroundColor: 'rgba(0, 255, 136, 0.1)', 
-                            color: '#00ff88', 
-                            border: '1px solid rgba(0, 255, 136, 0.3)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
-                    >
-                        <svg height={"0.9rem"} style={{ marginRight: "0.8rem" }} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                        </svg>
+                    <button onClick={() => navigate(`/interview/${interviewId}/live`)} className='button live-button' style={{ marginBottom: '0.8rem', backgroundColor: 'rgba(0, 255, 136, 0.1)', color: '#00ff88', border: '1px solid rgba(0, 255, 136, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         Start Live Interview
                     </button>
-
-                    <button
-                        onClick={() => { getResumePdf(interviewId) }}
-                        className='button primary-button' >
-                        {/* SVG */}
+                    <button onClick={() => { getResumePdf(interviewId) }} className='button primary-button' >
                         Download Resume
                     </button>
                 </nav>
@@ -270,19 +308,47 @@ const Interview = () => {
                         </section>
                     )}
 
+                    {/* 🟢 NEW DYNAMIC ROADMAP UI */}
                     {activeNav === 'roadmap' && (
                         <section>
-                            <div className='content-header'>
+                            <div className='content-header' style={{ marginBottom: '1rem' }}>
                                 <h2>Preparation Road Map</h2>
-                                <span className='content-header__count'>{report.preparationPlan.length}-day plan</span>
+                                <span className='content-header__count'>{activeRoadmap.length}-day plan</span>
                             </div>
+                            
+                            {/* Generator Widget */}
+                            <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '1rem', color: '#fff', margin: '0 0 0.5rem 0' }}>Adjust Your Timeline</h3>
+                                    <p style={{ fontSize: '0.85rem', color: '#888', margin: 0 }}>How many days do you have left to prepare?</p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <input 
+                                        type="number" 
+                                        min="1" max="30" 
+                                        value={customDays} 
+                                        onChange={(e) => setCustomDays(Number(e.target.value))}
+                                        style={{ width: '80px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #444', background: '#111', color: '#fff', fontSize: '1rem', outline: 'none', textAlign: 'center' }}
+                                    />
+                                    <span style={{ color: '#aaa', fontSize: '0.9rem' }}>Days</span>
+                                    <button 
+                                        onClick={handleGenerateCustomRoadmap} 
+                                        disabled={isGeneratingRoadmap}
+                                        style={{ padding: '0.6rem 1.2rem', borderRadius: '8px', border: 'none', background: '#00ff88', color: '#000', fontWeight: 'bold', cursor: isGeneratingRoadmap ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isGeneratingRoadmap ? 0.7 : 1 }}
+                                    >
+                                        {isGeneratingRoadmap ? "Recalculating..." : "Regenerate Plan"}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className='roadmap-list'>
-                                {report.preparationPlan.map((day) => (
+                                {activeRoadmap.map((day) => (
                                     <RoadMapDay key={day.day} day={day} />
                                 ))}
                             </div>
                         </section>
                     )}
+
                     {activeNav === 'jobs' && (
                         <JobSearchSection />
                     )}
@@ -290,33 +356,33 @@ const Interview = () => {
 
                 <div className='interview-divider' />
 
-                {/* ── Right Sidebar ── */}
+                {/* ── Right Sidebar (Keep exactly the same SVG logic) ── */}
                 <aside className='interview-sidebar'>
-
-                    {/* Match Score */}
-                    <div className='match-score'>
-                        <p className='match-score__label'>Match Score</p>
-                        <div className={`match-score__ring ${scoreColor}`}>
-                            <span className='match-score__value'>{report.matchScore}</span>
-                            <span className='match-score__pct'>%</span>
+                    <div className="match-score-widget">
+                        <h3 className="widget-title">MATCH SCORE</h3>
+                        <div className="svg-ring-container">
+                            <svg className="progress-ring" width="140" height="140">
+                                <circle className="progress-ring__track" stroke="rgba(255, 255, 255, 0.05)" strokeWidth="8" fill="transparent" r={radius} cx="70" cy="70" />
+                                <circle className="progress-ring__circle" stroke={color} strokeWidth="8" fill="transparent" r={radius} cx="70" cy="70" style={{ strokeDasharray: circumference, strokeDashoffset: strokeDashoffset, filter: `drop-shadow(0 0 8px ${glow})` }} />
+                            </svg>
+                            <div className="ring-content">
+                                <span className="score-value">{animatedScore}</span>
+                                <span className="score-pct">%</span>
+                            </div>
                         </div>
-                        <p className='match-score__sub'>Strong match for this role</p>
+                        <p className="match-score-sub" style={{ color: color }}>{text}</p>
                     </div>
 
                     <div className='sidebar-divider' />
 
-                    {/* Skill Gaps */}
                     <div className='skill-gaps'>
                         <p className='skill-gaps__label'>Skill Gaps</p>
                         <div className='skill-gaps__list'>
                             {report.skillGaps.map((gap, i) => (
-                                <span key={i} className={`skill-tag skill-tag--${gap.severity}`}>
-                                    {gap.skill}
-                                </span>
+                                <span key={i} className={`skill-tag skill-tag--${gap.severity}`}>{gap.skill}</span>
                             ))}
                         </div>
                     </div>
-
                 </aside>
             </div>
         </div>

@@ -505,3 +505,90 @@ $font-stack:     'Outfit', system-ui, sans-serif;
         }
     }
 }
+
+
+
+/* =========================================
+   PREMIUM TOP NAVBAR
+   ========================================= */
+.top-navbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.2rem 3rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Very subtle bottom line */
+    display: flex;
+    justify-content: center;
+    z-index: 100;
+    background: rgba(15, 15, 15, 0.6); /* Slight background */
+    backdrop-filter: blur(8px); /* Premium glass effect */
+
+    &__content {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ff88, #00b35e); /* Matches your brand green */
+            color: #0f0f0f; /* Dark text for contrast */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+
+        .username {
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+    }
+
+    .logout-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: transparent;
+        color: #a0aec0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: #fff;
+            border-color: #ff4d4d; /* Soft red border on hover */
+            background: rgba(255, 77, 77, 0.1); /* Soft red glow */
+            transform: translateY(-1px);
+        }
+    }
+}
+
+/* 🟢 IMPORTANT LAYOUT FIX */
+/* Because the navbar is absolute positioned, we need to push your main content down slightly so they don't overlap */
+.home-page {
+    padding-top: 80px; 
+}

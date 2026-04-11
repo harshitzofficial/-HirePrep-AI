@@ -2,9 +2,8 @@ const userModel = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// 🚨 REMOVED the old MongoDB tokenBlacklistModel
-// 🚀 ADDED the new Redis Client (Adjust the path if your redis.js is in a different folder)
-const redisClient = require("../config/redis"); 
+// REDIS CLIENT FOR BLACKLISTING TOKENS -----BOOM-----
+const redisClient = require("../config/redis");
 
 /**
  * @name registerUserController
@@ -12,49 +11,46 @@ const redisClient = require("../config/redis");
  * @access Public
  */
 async function registerUserController(req, res) {
-    const { username, email, password } = req.body;
+    try {
+        const { username, email, password } = req.body;
 
-    if (!username || !email || !password) {
-        return res.status(400).json({
-            message: "Please provide username, email and password"
-        });
-    }
-
-    const isUserAlreadyExists = await userModel.findOne({
-        //search for user with the same email or username
-        $or: [{ username }, { email }]
-    });
-
-    if (isUserAlreadyExists) {
-        return res.status(400).json({
-            message: "Account already exists with this email address or username"
-        });
-    }
-
-    const hash = await bcrypt.hash(password, 10); //hash the password with a salt of 10 rounds
-
-    const user = await userModel.create({
-        username,
-        email,
-        password: hash
-    });
-
-    const token = jwt.sign(
-        { id: user._id, username: user.username },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-    );
-
-    res.cookie("token", token);
-
-    res.status(201).json({
-        message: "User registered successfully",
-        user: {
-            id: user._id,
-            username: user.username,
-            email: user.email
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: "Please provide all fields" });
         }
-    });
+        // Time complexity for findOne is O(log n) on indexed fields, which is efficient for our use case. We are checking both username and email to ensure uniqueness.
+        const isUserAlreadyExists = await userModel.findOne({
+            $or: [{ username }, { email }]
+        });
+
+        if (isUserAlreadyExists) {
+            return res.status(400).json({ message: "User already exists" });
+        }
+
+        const hash = await bcrypt.hash(password, 10); // 10 is the salt rounds, you can adjust it based on your security needs and performance considerations
+
+        const user = await userModel.create({
+            username,
+            email,
+            password: hash
+        });
+
+        const token = jwt.sign(
+            { id: user._id, username: user.username },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        res.cookie("token", token); // Set the token in an HTTP-only cookie for better security
+            
+
+        res.status(201).json({
+            message: "User registered successfully",
+            user: { id: user._id, username: user.username, email: user.email }
+        });
+    } 
+    catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
 }
 
 /**
@@ -63,39 +59,47 @@ async function registerUserController(req, res) {
  * @access Public
  */
 async function loginUserController(req, res) {
-    const { email, password } = req.body;
+    //"I wrapped controllers in try-catch to prevent server crashes and ensure proper error handling."
+    try {
+        const { email, password } = req.body;
 
-    const user = await userModel.findOne({ email });
+        const user = await userModel.findOne({ email });
 
-    if (!user) {
-        return res.status(400).json({
-            message: "Invalid email or password"
-        });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-        return res.status(400).json({
-            message: "Invalid email or password"
-        });
-    }
-
-    const token = jwt.sign(
-        { id: user._id, username: user.username },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-    );
-
-    res.cookie("token", token);
-    res.status(200).json({
-        message: "User loggedIn successfully.",
-        user: {
-            id: user._id,
-            username: user.username,
-            email: user.email
+        if (!user) {
+            return res.status(400).json({
+                message: "Invalid email or password"
+            });
         }
-    });
+        //no decryption only comparison
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordValid) {
+            return res.status(400).json({
+                message: "Invalid email or password"
+            });
+        }
+
+        const token = jwt.sign(
+            { id: user._id, username: user.username },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        res.cookie("token", token);
+        res.status(200).json({
+            message: "User loggedIn successfully.",
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email
+            }
+        });
+    } 
+    catch (error) {
+        console.error("Login Error:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+
 }
 
 /**
@@ -110,8 +114,8 @@ async function logoutUserController(req, res) {
     if (token) {
         try {
             // 2. Decode the token to find its expiration time
-            const decoded = jwt.decode(token);
-            
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
             if (decoded && decoded.exp) {
                 // 3. Calculate how many seconds until it naturally expires
                 const currentTime = Math.floor(Date.now() / 1000);
@@ -142,16 +146,21 @@ async function logoutUserController(req, res) {
  * @access private
  */
 async function getMeController(req, res) {
-    const user = await userModel.findById(req.user.id);
+    try{
+        const user = await userModel.findById(req.user.id);
 
-    res.status(200).json({
-        message: "User details fetched successfully",
-        user: {
-            id: user._id,
-            username: user.username,
-            email: user.email
-        }
-    });
+        res.status(200).json({
+            message: "User details fetched successfully",
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email
+            }
+        });
+   }
+   catch (error) {
+        res.status(500).json({ message: "Server Error" });
+    }
 }
 
 module.exports = {

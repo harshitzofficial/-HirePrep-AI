@@ -2,6 +2,7 @@ const express = require("express")
 const authMiddleware = require("../middlewares/auth.middleware")
 const interviewController = require("../controllers/interview.controller")
 const upload = require("../middlewares/file.middleware")
+const multer = require("multer")
 
 // --- RATE LIMITING IMPORTS ---
 const rateLimit = require("express-rate-limit");
@@ -13,9 +14,10 @@ const interviewRouter = express.Router()
 // --- Define the AI Rate Limiter ---
 const aiRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit each IP to 10 requests per 15 minutes (adjust for production)
+    max: 10, // Limit each IP to 10 requests per 15 minutes
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { trustProxy: false, xForwardedForHeader: false, default: false },
     store: new RedisStore({
         sendCommand: (...args) => redisClient.sendCommand(args),
     }),
@@ -23,63 +25,70 @@ const aiRateLimiter = rateLimit({
         message: "You have reached your AI generation limit. Please try again in 15 minutes." 
     }
 });
+// Multer Error Handler
+const handleResumeUpload = (req, res, next) => {
+    const uploadMiddleware = upload.single("resume");
+    
+    uploadMiddleware(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+            // Catches "File too large" (the 5MB limit)
+            return res.status(400).json({ message: "File is too large. Maximum size is 5MB." });
+        } else if (err) {
+            // Catches our custom "Invalid file type" error
+            return res.status(400).json({ message: err.message });
+        }
+        // If no errors, proceed to the controller
+        next();
+    });
+};
 
 /**
  * @route POST /api/interview/
- * @description generate new interview report on the basis of user self description,resume pdf and job description.
- * @access private
+ * @description generate new interview report
  */
-// 🚨 Applied aiRateLimiter here!
-interviewRouter.post("/", authMiddleware.authUser, aiRateLimiter, upload.single("resume"), interviewController.generateInterViewReportController)
+interviewRouter.post("/", authMiddleware.authUser, aiRateLimiter, handleResumeUpload, interviewController.generateInterViewReportController)
 
 /**
  * @route GET /api/interview/report/:interviewId
  * @description get interview report by interviewId.
- * @access private
  */
-// ✅ No rate limiter! Users can view old reports freely.
 interviewRouter.get("/report/:interviewId", authMiddleware.authUser, interviewController.getInterviewReportByIdController)
 
 /**
  * @route GET /api/interview/
  * @description get all interview reports of logged in user.
- * @access private
  */
-// ✅ No rate limiter! Users can view their dashboard freely.
 interviewRouter.get("/", authMiddleware.authUser, interviewController.getAllInterviewReportsController)
 
 /**
  * @route POST /api/interview/resume/pdf/:interviewReportId
- * @description generate resume pdf on the basis of user self description, resume content and job description.
- * @access private
+ * @description generate resume pdf
  */
-// 🚨 Applied aiRateLimiter here too, since generating the HTML uses Gemini!
 interviewRouter.post("/resume/pdf/:interviewReportId", authMiddleware.authUser, aiRateLimiter, interviewController.generateResumePdfController)
 
 /**
  * @route POST /api/interview/live/questions
  * @description Generate 3 questions for the live audio interview
  */
-interviewRouter.post("/live/questions", authMiddleware.authUser, interviewController.getLiveQuestionsController);
-
-/**
- * @route POST /api/interview/live/evaluate
- * @description Grade the final Q&A transcript
- */
-interviewRouter.post("/live/evaluate", authMiddleware.authUser, interviewController.evaluateInterviewController);
-
-/**
- * @route POST /api/interview/live/questions
- * @description Generate 3 questions for the live audio interview
- */
-// 🚨 Added aiRateLimiter here!
 interviewRouter.post("/live/questions", authMiddleware.authUser, aiRateLimiter, interviewController.getLiveQuestionsController);
 
 /**
  * @route POST /api/interview/live/evaluate
- * @description Grade the final Q&A transcript
+ * @description Grade the final Q&A transcript (At the end of the interview)
  */
-// 🚨 Added aiRateLimiter here too!
 interviewRouter.post("/live/evaluate", authMiddleware.authUser, aiRateLimiter, interviewController.evaluateInterviewController);
+
+/**
+ * @route POST /api/interview/live/evaluate-single
+ * @description Grade a single Q&A pair and provide instant coaching
+ */
+interviewRouter.post("/live/evaluate-single", authMiddleware.authUser, aiRateLimiter, interviewController.evaluateSingleAnswerController);
+
+
+/**
+ * @route POST /api/interview/roadmap/dynamic
+ */
+interviewRouter.post("/roadmap/dynamic", authMiddleware.authUser, aiRateLimiter, interviewController.generateDynamicRoadmapController);
+
 
 module.exports = interviewRouter
