@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React 18" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React 19" />
   <img src="https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white" alt="Express" />
+  <img src="https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white" alt="Express" />
   <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
   <img src="https://img.shields.io/badge/Redis-Cache-DC382D?logo=redis&logoColor=white" alt="Redis" />
   <img src="https://img.shields.io/badge/Google%20Gemini-AI-4285F4?logo=google&logoColor=white" alt="Google Gemini" />
@@ -73,7 +73,7 @@ HirePrep AI is a full-stack interview preparation platform designed to help cand
  
 | Layer | Technology | Key Code Entities |
 | :--- | :--- | :--- |
-| **Frontend** | React 18, Vite, SCSS | `AuthProvider`, `InterviewProvider`, `useSpeech` |
+| **Frontend** | React 19, Vite, SCSS | `AuthProvider`, `InterviewProvider`, `useSpeech` |
 | **Backend** | Node.js, Express | `server.js`, `interview.controller.js` |
 | **Database** | MongoDB (Mongoose ODM) | `User`, `InterviewReport` |
 | **Caching** | Redis | `redis.js`, `rateLimiter` |
@@ -131,6 +131,11 @@ HirePrep-AI/
 │       └── features/
 │           ├── auth/
 │           │   ├── auth.context.jsx     # Authentication state management
+│           │   ├── auth.form.scss       # Auth form styles
+│           │   ├── components/
+│           │   │   └── Protected.jsx    # Route protection wrapper
+│           │   ├── hooks/
+│           │   │   └── useAuth.js       # Auth hook
 │           │   ├── pages/               # Login.jsx, Register.jsx
 │           │   └── services/auth.api.js # Auth API client (Axios)
 │           ├── interview/
@@ -142,9 +147,8 @@ HirePrep-AI/
 │           │   │   ├── Home.jsx             # Dashboard — upload resume + JD
 │           │   │   ├── Interview.jsx        # Report detail — tabs view
 │           │   │   └── LiveInterview.jsx    # Voice-enabled mock interview
-│           │   ├── components/              # QuestionCard, RoadMapDay, etc.
 │           │   ├── services/interview.api.js # Interview API client (Axios)
-│           │   └── style/                   # SCSS modules
+│           │   └── style/                   # SCSS modules (home, interview, liveInterview)
 │           └── public/
 │               ├── pages/Landing.jsx   # Public landing page
 │               └── style/landing.scss  # Landing page styles
@@ -193,12 +197,12 @@ sequenceDiagram
     participant G as GeminiService
     participant P as PuppeteerService
  
-    U->>C: POST /api/interview/generate-report (Resume + JD)
+    U->>C: POST /api/interview/ (Resume + JD)
     C->>G: generateInterviewReport()
     G-->>C: Zod Schema (matchScore, skillGaps)
     C-->>U: Display Dashboard
  
-    U->>C: GET /api/interview/generate-resume-pdf
+    U->>C: POST /api/interview/resume/pdf/:interviewReportId
     C->>G: generateResumeHtml()
     C->>P: renderPdf(html)
     P-->>U: Download PDF
@@ -265,7 +269,7 @@ Create `Backend/.env` with the following variables:
 | `RAPIDAPI_KEY` | Key for JSearch API via RapidAPI. |
 | `JWT_SECRET` | Secret string used for signing authentication tokens. |
 | `FRONTEND_URL` | The URL of the running frontend (e.g., `http://localhost:5173`). |
-| `PORT` | Port for the backend server (defaults to `5000`). |
+| `PORT` | Port for the backend server (defaults to `3000`). |
  
 #### Frontend `.env`
  
@@ -273,7 +277,7 @@ Create `Frontend/.env` with the following variable:
  
 | Variable | Description |
 | :--- | :--- |
-| `VITE_API_URL` | The base URL of the backend API (e.g., `http://localhost:5000/api`). |
+| `VITE_API_URL` | The base URL of the backend server (e.g., `http://localhost:3000`). |
  
 ### Running Locally
  
@@ -343,7 +347,7 @@ sequenceDiagram
     participant G as Gemini AI
  
     U->>F: Uploads PDF Resume
-    F->>B: POST /api/interview/generate (Multipart)
+    F->>B: POST /api/interview/ (Multipart)
     B->>B: pdf-parse (Extract Text)
     B->>R: Check for Cached Report (SHA-256 Fingerprint)
     alt Cache Miss
@@ -497,7 +501,7 @@ The Middleware Layer serves as the processing pipeline for all incoming HTTP req
 | **CORS** | Security | Dynamic origin matching with trailing slash sanitization via `FRONTEND_URL` |
 | **Body Parser** | Data Handling | `express.json()` for parsing incoming JSON payloads |
 | **Cookie Parser** | Auth Support | Parses cookies for JWT-based session management |
-| **Auth Guard** | Security | Custom `protect` middleware verifying JWTs and Redis blacklists |
+| **Auth Guard** | Security | Custom `authUser` middleware verifying JWTs and Redis blacklists |
  
 #### CORS Configuration
  
@@ -638,7 +642,7 @@ sequenceDiagram
  
 #### Controller Actions
  
-- **`getAllInterviewReportsController`** — Fetches all reports with heavy fields excluded (resume, jobDescription, questions) for optimized payload size.
+- **`getAllInterviewReportsController`** — Fetches all reports with heavy fields excluded (`resume`, `selfDescription`, `jobDescription`, `technicalQuestions`, `behavioralQuestions`, `skillGaps`, `preparationPlan`) for optimized payload size.
 - **`getInterviewReportByIdController`** — Fetches complete report. Enforces security by matching `user` ID with authenticated `req.user.id`.
 - **`getLiveQuestionsController`** — Calls AI service to produce three questions based on interview type (Technical, Behavioral, or Mixed).
 - **`evaluateSingleAnswerController`** — Provides instant per-answer coaching during live sessions.
@@ -711,10 +715,10 @@ Generates exactly **3 interview questions** tailored to the candidate's profile 
 - **Fallback Mechanism**: If Gemini returns a `429` or any error, returns fallback questions to maintain UX.
  
 #### 2. Real-time Coaching (`evaluateSingleAnswer()`)
- 
+
 Evaluates a single question-answer pair and provides immediate, actionable feedback.
- 
-- **Schema**: `singleAnswerSchema` — returns a score and coaching tips.
+
+- **Output**: Returns a plain-text `feedback` string with constructive coaching tips (no structured schema).
 - The AI acts as a "friendly interview coach."
  
 #### 3. Full Interview Analytics (`evaluateLiveInterview()`)
@@ -940,11 +944,14 @@ The Frontend API Service Layer provides a centralized, modular interface for com
 | Function | Endpoint | Method | Pipeline |
 | :--- | :--- | :--- | :--- |
 | `generateInterviewReport` | `/api/interview/` | POST | Multipart/Form-Data |
+| `getAllInterviewReports` | `/api/interview/` | GET | JSON |
 | `getInterviewReportById` | `/api/interview/report/:id` | GET | JSON |
 | `generateResumePdf` | `/api/interview/resume/pdf/:id` | POST | Blob |
 | `getLiveQuestions` | `/api/interview/live/questions` | POST | JSON |
+| `evaluateInterview` | `/api/interview/live/evaluate` | POST | JSON |
 | `evaluateSingleAnswer` | `/api/interview/live/evaluate-single` | POST | JSON |
 | `generateDynamicRoadmap` | `/api/interview/roadmap/dynamic` | POST | JSON |
+| `searchLiveJobs` | `/api/jobs/search` | GET | JSON |
  
 #### Error Handling
  
@@ -1086,8 +1093,9 @@ sequenceDiagram
 | :--- | :--- | :--- | :--- |
 | **Auth** | 15 minutes | 10 requests/IP | `/api/auth/register`, `/api/auth/login` |
 | **AI** | 15 minutes | 10 requests/IP | All generative `/api/interview/*` endpoints |
+| **Jobs** | 15 minutes | 20 requests/IP | `/api/jobs/search` |
  
-Both use `express-rate-limit` with `rate-limit-redis` (RedisStore) for distributed state management.
+All three use `express-rate-limit` with `rate-limit-redis` (RedisStore) for distributed state management.
  
 ---
  
