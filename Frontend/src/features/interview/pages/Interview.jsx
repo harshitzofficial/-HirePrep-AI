@@ -66,7 +66,7 @@ const JobSearchSection = () => {
 
     const handleSearch = async (e) => {
         e.preventDefault();
-        if (!location) return;
+        if (!location.trim()) return;
 
         setIsSearching(true);
         try {
@@ -75,6 +75,9 @@ const JobSearchSection = () => {
             setSearchedQuery(data.searchQuery);
         } catch (error) {
             console.error("Failed to fetch jobs:", error);
+            // Fix #9: show user-friendly error instead of silent failure
+            setSearchedQuery(location);
+            setJobs([]);
         } finally {
             setIsSearching(false);
         }
@@ -125,6 +128,14 @@ const JobSearchSection = () => {
                         🤖 AI searched based on your resume for: <strong>{searchedQuery}</strong>
                     </p>
                 </div>
+            )}
+
+            {/* Fix #9: empty state so users know the search ran but found nothing */}
+            {jobs.length === 0 && searchedQuery && !isSearching && (
+                <p style={{ color: '#888', textAlign: 'center', padding: '2rem 0', fontSize: '0.95rem' }}>
+                    No jobs found for <strong style={{ color: '#ccc' }}>"{searchedQuery}"</strong> in <strong style={{ color: '#ccc' }}>{location}</strong>.<br />
+                    <span style={{ fontSize: '0.85rem' }}>Try a different city or search term.</span>
+                </p>
             )}
 
             <div className='job-list' style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -215,7 +226,8 @@ const Interview = () => {
         try {
             const data = await generateDynamicRoadmap({
                 jobDescription: report.jobDescription,
-                resumeText: report.resumeText || report.resumeContent || "",
+                // Fix #5: schema field is "resume", not "resumeText" or "resumeContent"
+                resumeText: report.resume || "",
                 days: customDays
             });
             // Update the UI with the fresh roadmap!
@@ -327,7 +339,8 @@ const Interview = () => {
                                         type="number" 
                                         min="1" max="30" 
                                         value={customDays} 
-                                        onChange={(e) => setCustomDays(Number(e.target.value))}
+                                        // Fix #8: clamp on change so invalid values are corrected immediately
+                                        onChange={(e) => setCustomDays(Math.min(30, Math.max(1, Number(e.target.value) || 1)))}
                                         style={{ width: '80px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #444', background: '#111', color: '#fff', fontSize: '1rem', outline: 'none', textAlign: 'center' }}
                                     />
                                     <span style={{ color: '#aaa', fontSize: '0.9rem' }}>Days</span>

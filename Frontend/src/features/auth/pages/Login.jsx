@@ -15,14 +15,14 @@ const Login = () => {
         e.preventDefault();  //Stops page reload ✅ Prevents the default browser behavior
         
         // 1. Capture the result of the login attempt
-        const success = await handleLogin({ email, password });
+        const { success, message } = await handleLogin({ email, password });
         
         // 2. ONLY navigate if success is true
-        // This prevents "fake" logins from moving away from the login page
         if (success) {
             navigate('/dashboard');
         } else {
-            alert("Invalid credentials. Please try again.");
+            // Show the specific error message from the backend or network
+            alert(message || "Invalid credentials. Please try again.");
         }
     }
 

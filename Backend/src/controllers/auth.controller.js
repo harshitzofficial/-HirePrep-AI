@@ -17,6 +17,11 @@ async function registerUserController(req, res) {
         if (!username || !email || !password) {
             return res.status(400).json({ message: "Please provide all fields" });
         }
+
+        // Fix #6: enforce minimum password length before hashing
+        if (password.length < 8) {
+            return res.status(400).json({ message: "Password must be at least 8 characters." });
+        }
         // Time complexity for findOne is O(log n) on indexed fields, which is efficient for our use case. We are checking both username and email to ensure uniqueness.
         const isUserAlreadyExists = await userModel.findOne({
             $or: [{ username }, { email }]
@@ -162,6 +167,11 @@ async function logoutUserController(req, res) {
 async function getMeController(req, res) {
     try{
         const user = await userModel.findById(req.user.id);
+
+        // Fix #1: user could be null if the account was deleted after the JWT was issued
+        if (!user) {
+            return res.status(404).json({ message: "User account not found." });
+        }
 
         res.status(200).json({
             message: "User details fetched successfully",

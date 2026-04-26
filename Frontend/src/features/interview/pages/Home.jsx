@@ -3,14 +3,16 @@ import "../style/home.scss"
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../../auth/hooks/useAuth.js'
+import { deleteInterviewReport } from '../services/interview.api.js'
 
 const Home = () => {
 
-    const { loading, generateReport, reports } = useInterview()
+    const { loading, generateReport, reports, setReports } = useInterview()
     const { user, handleLogout } = useAuth() 
 
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
+    const [ formError, setFormError ] = useState("")
     
     // 1. Add state to track the selected file
     const [resumeFile, setResumeFile] = useState(null)
@@ -36,11 +38,34 @@ const Home = () => {
     };
 
     const handleGenerateReport = async () => {
-        // Use the state variable instead of reading the ref directly
+        // ✅ Input validation before hitting the API
+        setFormError("")
+        if (!jobDescription.trim()) {
+            setFormError("Please paste a job description before generating your plan.")
+            return
+        }
+        if (!resumeFile && !selfDescription.trim()) {
+            setFormError("Please upload your resume or write a quick self-description.")
+            return
+        }
+
         const data = await generateReport({ jobDescription, selfDescription, resumeFile })
         
         if (data && data._id) {
             navigate(`/interview/${data._id}`)
+        }
+    }
+
+    const handleDeleteReport = async (e, reportId) => {
+        // Stop the click from bubbling up to the card's navigate handler
+        e.stopPropagation()
+        if (!window.confirm("Delete this interview plan? This cannot be undone.")) return
+        try {
+            await deleteInterviewReport(reportId)
+            setReports(prev => prev.filter(r => r._id !== reportId))
+        } catch (err) {
+            console.error("Delete failed:", err)
+            alert("Failed to delete report. Please try again.")
         }
     }
 
@@ -71,6 +96,14 @@ const Home = () => {
                                 <span className='username'>Hello, {user.username || 'User'}</span>
                             </div>
                         )}
+                        <button onClick={() => navigate("/history")} className="history-link-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            Mock History
+                        </button>
+
                         <button onClick={handleLogout} className='logout-button'>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -108,7 +141,9 @@ const Home = () => {
                             placeholder={`Paste the full job description here...\ne.g. 'Senior Frontend Engineer at Google requires proficiency in React, TypeScript, and large-scale system design...'`}
                             maxLength={5000}
                         />
-                        <div className='char-counter'>0 / 5000 chars</div>
+                        <div className={`char-counter ${jobDescription.length > 4500 ? 'char-counter--warn' : ''}`}>
+                            {jobDescription.length} / 5000 chars
+                        </div>
                     </div>
 
                     {/* Vertical Divider */}
@@ -198,12 +233,25 @@ const Home = () => {
 
                 {/* Card Footer */}
                 <div className='interview-card__footer'>
-                    <span className='footer-info'>AI-Powered Strategy Generation &bull; Approx 30s</span>
+                    <div className='footer-left'>
+                        <span className='footer-info'>AI-Powered Strategy Generation &bull; Approx 30s</span>
+                        {formError && <p className='form-error'>{formError}</p>}
+                    </div>
                     <button
                         onClick={handleGenerateReport}
-                        className='generate-btn'>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" /></svg>
-                        Generate My Interview Strategy
+                        disabled={loading}
+                        className={`generate-btn ${loading ? 'generate-btn--loading' : ''}`}>
+                        {loading ? (
+                            <>
+                                <span className='btn-spinner' />
+                                Generating...
+                            </>
+                        ) : (
+                            <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" /></svg>
+                                Generate My Interview Strategy
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
@@ -215,7 +263,17 @@ const Home = () => {
                     <ul className='reports-list'>
                         {reports.map(report => (
                             <li key={report._id} className='report-item' onClick={() => navigate(`/interview/${report._id}`)}>
-                                <h3>{report.title || 'Untitled Position'}</h3>
+                                <div className='report-item__top'>
+                                    <h3>{report.title || 'Untitled Position'}</h3>
+                                    <button
+                                        className='report-delete-btn'
+                                        onClick={(e) => handleDeleteReport(e, report._id)}
+                                        aria-label="Delete report"
+                                        title="Delete this plan"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                    </button>
+                                </div>
                                 <p className='report-meta'>Generated on {new Date(report.createdAt).toLocaleDateString()}</p>
                                 <p className={`match-score ${report.matchScore >= 80 ? 'score--high' : report.matchScore >= 60 ? 'score--mid' : 'score--low'}`}>Match Score: {report.matchScore}%</p>
                             </li>

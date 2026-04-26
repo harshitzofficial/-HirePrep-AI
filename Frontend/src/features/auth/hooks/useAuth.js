@@ -14,12 +14,17 @@ export const useAuth = () => {
         setLoading(true);
         try {
             const data = await login({ email, password });
-            // Critical: Update the user state with the NEW data from the server
-            setUser(data.user);
-            return true; // Return true so Login.jsx knows it succeeded
+            // Safety Check: Ensure data and data.user exist
+            if (data && data.user) {
+                setUser(data.user);
+                return { success: true };
+            } else {
+                return { success: false, message: "Invalid response from server" };
+            }
         } catch (err) {
             console.error("Login Error:", err);
-            return false; // Return false so we don't redirect on failure
+            const errorMsg = err.response?.data?.message || err.message || "An unexpected error occurred";
+            return { success: false, message: errorMsg };
         } finally {
             setLoading(false);
         }

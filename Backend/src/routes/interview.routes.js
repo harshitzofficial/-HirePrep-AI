@@ -21,14 +21,14 @@ const aiRateLimiter = rateLimit({
     store: new RedisStore({
         sendCommand: (...args) => redisClient.sendCommand(args),
     }),
-    message: { 
-        message: "You have reached your AI generation limit. Please try again in 15 minutes." 
+    message: {
+        message: "You have reached your AI generation limit. Please try again in 15 minutes."
     }
 });
 // Multer Error Handler
 const handleResumeUpload = (req, res, next) => {
     const uploadMiddleware = upload.single("resume");
-    
+
     uploadMiddleware(req, res, (err) => {
         if (err instanceof multer.MulterError) {
             // Catches "File too large" (the 5MB limit)
@@ -84,11 +84,30 @@ interviewRouter.post("/live/evaluate", authMiddleware.authUser, aiRateLimiter, i
  */
 interviewRouter.post("/live/evaluate-single", authMiddleware.authUser, aiRateLimiter, interviewController.evaluateSingleAnswerController);
 
+/**
+ * @route POST /api/interview/live/hint
+ * @description Get a subtle AI Copilot hint
+ */
+interviewRouter.post("/live/hint", authMiddleware.authUser, aiRateLimiter, interviewController.getLiveHintController);
+
 
 /**
  * @route POST /api/interview/roadmap/dynamic
  */
 interviewRouter.post("/roadmap/dynamic", authMiddleware.authUser, aiRateLimiter, interviewController.generateDynamicRoadmapController);
+
+/**
+ * @route GET /api/interview/sessions
+ * @description Get all past mock interview sessions
+ */
+interviewRouter.get("/sessions", authMiddleware.authUser, interviewController.getAllInterviewSessionsController);
+
+/**
+ * @route DELETE /api/interview/report/:interviewId
+ * @description Delete an interview report by ID (owner only)
+ */
+interviewRouter.delete("/report/:interviewId", authMiddleware.authUser, interviewController.deleteInterviewReportController);
+
 
 
 module.exports = interviewRouter

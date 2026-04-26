@@ -88,3 +88,22 @@ export const generateDynamicRoadmap = async (payload) => {
     const response = await api.post("/api/interview/roadmap/dynamic", payload);
     return response.data;
 };
+
+export const getAllInterviewSessions = async () => {
+    const response = await api.get("/api/interview/sessions");
+    return response.data;
+};
+
+export const getHint = async (payload) => {
+    const response = await api.post("/api/interview/live/hint", payload);
+    return response.data;
+};
+
+/**
+ * @description Delete an interview report by its ID.
+ */
+export const deleteInterviewReport = async (reportId) => {
+    const response = await api.delete(`/api/interview/report/${reportId}`);
+    return response.data;
+};
+

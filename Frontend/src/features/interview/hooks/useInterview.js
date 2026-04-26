@@ -106,6 +106,6 @@ export const useInterview = () => {
         }
     }, [ interviewId ])
 
-    return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf }
+    return { loading, report, reports, setReports, generateReport, getReportById, getReports, getResumePdf }
 
 }

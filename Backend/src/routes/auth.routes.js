@@ -12,13 +12,15 @@ const authRouter = Router();
 // Blocks bots from brute-forcing passwords or spamming fake accounts
 const authRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit to 10 attempts per IP
+    max: 20, // Limit to 20 attempts per IP
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false, xForwardedForHeader: false, default: false },
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
-    }),
+    store: redisClient.isOpen 
+        ? new RedisStore({
+            sendCommand: (...args) => redisClient.sendCommand(args),
+        })
+        : new rateLimit.MemoryStore(), // Fallback to memory store if Redis is down
     message: { 
         message: "Too many authentication attempts. Please try again in 15 minutes." 
     }

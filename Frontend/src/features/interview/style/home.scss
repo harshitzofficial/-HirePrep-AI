@@ -564,6 +564,28 @@ $font-stack:     'Outfit', system-ui, sans-serif;
         }
     }
 
+    .history-link-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: transparent;
+        color: #a0aec0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: #00ff88;
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.05);
+            transform: translateY(-1px);
+        }
+    }
+
     .logout-button {
         display: flex;
         align-items: center;
@@ -591,4 +613,103 @@ $font-stack:     'Outfit', system-ui, sans-serif;
 /* Because the navbar is absolute positioned, we need to push your main content down slightly so they don't overlap */
 .home-page {
     padding-top: 80px; 
+}
+
+// ── Character Counter Warning ─────────────────────────────────────────────────
+.char-counter {
+    transition: color 0.2s;
+
+    &--warn {
+        color: #f59e0b !important; // Amber warning color
+        font-weight: 600;
+    }
+}
+
+// ── Form Validation Error ─────────────────────────────────────────────────────
+.form-error {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #f87171; // Soft red
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+
+    &::before {
+        content: '⚠';
+    }
+}
+
+.footer-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+// ── Generate Button — Loading State ──────────────────────────────────────────
+.generate-btn {
+    &--loading {
+        opacity: 0.75;
+        cursor: not-allowed;
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+    }
+}
+
+// ── Button Spinner ─────────────────────────────────────────────────────────────
+.btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+// ── Report Card — Top Row with Delete Button ──────────────────────────────────
+.report-item {
+    &__top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+
+        h3 {
+            margin: 0;
+        }
+    }
+}
+
+.report-delete-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, background-color 0.2s;
+    opacity: 0; // Hidden by default
+    transition: opacity 0.2s, color 0.2s, background-color 0.2s;
+
+    .report-item:hover & {
+        opacity: 1; // Reveal on card hover
+    }
+
+    &:hover {
+        color: #ff4444;
+        background-color: rgba(255, 68, 68, 0.1);
+    }
 }

@@ -5,9 +5,11 @@ import {
   getLiveQuestions,
   evaluateInterview,
   evaluateSingleAnswer,
+  getHint
 } from "../services/interview.api";
 import { useInterview } from "../hooks/useInterview";
 import useSpeech from "../hooks/useSpeech";
+import useFaceAnalysis from "../hooks/useFaceAnalysis"; // 🟢 Import the new hook
 import "../style/liveInterview.scss";
 
 const LiveInterview = () => {
@@ -19,15 +21,16 @@ const LiveInterview = () => {
     startListening,
     stopListening,
     isListening, // 🟢 This is the correct variable name!
+    isAITalking, // 🟢 Tracks AI voice output
     transcript,
-    setTranscript,
+    updateTranscriptManually,
+    resetTranscript,
   } = useSpeech();
 
   const [questions, setQuestions] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const [accumulatedAnswer, setAccumulatedAnswer] = useState("");
   const [fullTranscript, setFullTranscript] = useState([]);
 
   const [evaluation, setEvaluation] = useState(null);
@@ -39,8 +42,39 @@ const LiveInterview = () => {
   const [currentFeedback, setCurrentFeedback] = useState(null);
   const [isEvaluatingSingle, setIsEvaluatingSingle] = useState(false);
 
+  // 🟢 AI Copilot State
+  const [hint, setHint] = useState(null);
+  const [isFetchingHint, setIsFetchingHint] = useState(false);
+
   const videoRef = useRef(null);
+  const transcriptEndRef = useRef(null);
   const [isCamOn, setIsCamOn] = useState(false);
+
+  // Guard: prevent submitForGrading from running more than once per session
+  // (React StrictMode double-invokes state updaters in dev — this is the fix)
+  const isSubmittingRef = useRef(false);
+
+  // 🟢 Real-time Face Analysis
+  const { analysis, modelsLoaded } = useFaceAnalysis(videoRef);
+  const [confidenceHistory, setConfidenceHistory] = useState([]);
+  const [eyeContactHistory, setEyeContactHistory] = useState([]); // Fix 1: track eye contact %
+
+  // Track both confidence AND eye contact over time for the final grade
+  useEffect(() => {
+    if (isCamOn && analysis.confidenceScore > 0) {
+      setConfidenceHistory(prev => [...prev, analysis.confidenceScore]);
+      // Fix 1: record 1 (good) or 0 (bad) each frame — compute % later
+      setEyeContactHistory(prev => [...prev, analysis.eyeContact ? 1 : 0]);
+    }
+  }, [analysis.confidenceScore, isCamOn]);
+
+  const scrollToBottom = () => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [fullTranscript]);
 
   useEffect(() => {
     if (interviewId) getReportById(interviewId);
@@ -49,12 +83,14 @@ const LiveInterview = () => {
   const startInterview = async () => {
     if (!report) return;
     setIsProcessing(true);
+    // Reset the submission guard for a fresh session
+    isSubmittingRef.current = false;
 
     try {
       const data = await getLiveQuestions({
         jobDescription: report.jobDescription,
-        resumeText:
-          report.resumeText || report.resumeContent || "Candidate's resume",
+        // Fix #5: schema field is "resume", not "resumeText" or "resumeContent"
+        resumeText: report.resume || "Candidate's resume",
         userCommand,
         interviewType,
       });
@@ -111,10 +147,6 @@ const LiveInterview = () => {
   const toggleMic = () => {
     if (isListening) {
       stopListening();
-      if (transcript) {
-        setAccumulatedAnswer((prev) => prev + (prev ? " " : "") + transcript);
-        setTranscript("");
-      }
     } else {
       startListening();
     }
@@ -125,25 +157,22 @@ const LiveInterview = () => {
     // If user starts typing while mic is on, auto-pause mic to prevent text jumping
     if (isListening) {
       stopListening();
-      setTranscript("");
     }
-    setAccumulatedAnswer(e.target.value);
+    updateTranscriptManually(e.target.value);
   };
 
   const handleNext = () => {
     stopListening();
 
-    const finalAnswer = (
-      accumulatedAnswer + (transcript ? " " + transcript : "")
-    ).trim();
+    const finalAnswer = transcript.trim();
     const qaPair = { question: questions[currentIndex], answer: finalAnswer };
     const updatedTranscript = [...fullTranscript, qaPair];
 
     setFullTranscript(updatedTranscript);
-    setAccumulatedAnswer("");
-    setTranscript("");
+    resetTranscript();
 
     if (currentIndex < questions.length - 1) {
+      setHint(null); // Reset hint for next question
       const nextIdx = currentIndex + 1;
       setCurrentIndex(nextIdx);
       askQuestion(questions[nextIdx]);
@@ -154,9 +183,7 @@ const LiveInterview = () => {
 
   const handleSubmitAnswer = async () => {
     stopListening();
-    const finalAnswer = (
-      accumulatedAnswer + (transcript ? " " + transcript : "")
-    ).trim();
+    const finalAnswer = transcript.trim();
 
     if (!finalAnswer) return;
 
@@ -175,9 +202,14 @@ const LiveInterview = () => {
       // 2. 🗣️ Make the AI speak the feedback out loud!
       speak(result.feedback);
 
-      // Save to full transcript
-      const qaPair = { question: questions[currentIndex], answer: finalAnswer };
-      setFullTranscript([...fullTranscript, qaPair]);
+      // Save to full transcript with feedback!
+      const qaPair = {
+        question: questions[currentIndex],
+        answer: finalAnswer,
+        feedback: result.feedback, // 🟢 STORE THE FEEDBACK!
+      };
+      setFullTranscript((prev) => [...prev, qaPair]);
+      resetTranscript(); // 🟢 Clear the input so it doesn't look duplicated
     } catch (err) {
       console.error("Single Eval API Error:", err);
       // If it fails, show the error so you know WHY it failed
@@ -190,20 +222,25 @@ const LiveInterview = () => {
     }
   };
 
-  // 🟢 SPLIT FUNCTION 2: Proceed to Next Question
+  // handleProceedToNext: safe to use fullTranscript directly here.
+  // By the time the user clicks this button, React has already re-rendered
+  // after handleSubmitAnswer's setFullTranscript, so the closure is fresh.
   const handleProceedToNext = () => {
-    // 🛑 Stop speaking the feedback if the user clicks Next early
+    // Stop speaking the feedback if the user clicks Next early
     window.speechSynthesis.cancel();
 
     setCurrentFeedback(null);
-    setAccumulatedAnswer("");
-    setTranscript("");
+    resetTranscript();
 
     if (currentIndex < questions.length - 1) {
+      setHint(null);
       const nextIdx = currentIndex + 1;
       setCurrentIndex(nextIdx);
-      askQuestion(questions[nextIdx]); // This will ask the next question
+      askQuestion(questions[nextIdx]);
     } else {
+      // Use fullTranscript directly — NOT inside a state updater.
+      // State updaters must be pure; side effects inside them get double-called
+      // by React StrictMode, which was creating 2 sessions per interview.
       submitForGrading(fullTranscript);
     }
   };
@@ -217,9 +254,7 @@ const LiveInterview = () => {
       stopListening();
 
       // Grab whatever they were currently typing/saying
-      const finalAnswer = (
-        accumulatedAnswer + (transcript ? " " + transcript : "")
-      ).trim();
+      const finalAnswer = transcript.trim();
 
       let updatedTranscript = fullTranscript;
 
@@ -237,12 +272,56 @@ const LiveInterview = () => {
     }
   };
 
-  const submitForGrading = async (finalTranscript) => {
-    setIsProcessing(true);
+  // 🟢 NEW: HANDLE COPILOT HINT
+  const handleGetHint = async () => {
+    setIsFetchingHint(true);
     try {
+      const result = await getHint({
+        question: questions[currentIndex],
+        jobDescription: report.jobDescription,
+      });
+      setHint(result.hint);
+    } catch (err) {
+      setHint("Take a deep breath and break the problem down into smaller steps.");
+    } finally {
+      setIsFetchingHint(false);
+    }
+  };
+  
+  const submitForGrading = async (finalTranscript) => {
+    // Guard against double-submission (React StrictMode + accidental double-click)
+    if (isSubmittingRef.current) {
+      console.warn("submitForGrading called twice — blocked duplicate.");
+      return;
+    }
+    isSubmittingRef.current = true;
+    setIsProcessing(true);
+
+    // 🟢 FORCE STOP CAMERA
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCamOn(false);
+
+    try {
+      const avgConfidence = confidenceHistory.length > 0 
+        ? Math.round(confidenceHistory.reduce((a, b) => a + b, 0) / confidenceHistory.length)
+        : 70;
+
+      // Fix 1: real eye contact % — how many frames user actually looked at screen
+      const avgEyeContactScore = eyeContactHistory.length > 0
+        ? Math.round((eyeContactHistory.reduce((a, b) => a + b, 0) / eyeContactHistory.length) * 100)
+        : 70; // default 70% if camera was off
+
       const result = await evaluateInterview({
         transcript: finalTranscript,
         jobDescription: report.jobDescription,
+        interviewReportId: interviewId,
+        aiMetrics: {
+            avgConfidence,
+            eyeContactScore: avgEyeContactScore   // Fix 1: real % not binary 100/50
+        }
       });
       setEvaluation(result);
       setCurrentStep(2);
@@ -401,6 +480,41 @@ const LiveInterview = () => {
               {/* 1. User Camera Box */}
               <div className={`cam-box user-cam ${!isCamOn ? "cam-off" : ""}`}>
                 <video ref={videoRef} autoPlay playsInline muted />
+                
+                {/* 🟢 NEW: AI Body Language Status Overlay */}
+                {isCamOn && modelsLoaded && (
+                  <div className="analysis-overlay">
+                    <div className={`status-pill ${analysis.eyeContact ? "good" : "warning"}`}>
+                      {analysis.eyeContact ? "Eye Contact: Good" : "Eye Contact: Look here"}
+                    </div>
+                    
+                    {/* 🟢 NEW: Confidence Meter */}
+                    <div className="confidence-meter-container">
+                        <span className="label">Confidence</span>
+                        <div className="meter-bg">
+                            <div className="meter-fill" style={{ width: `${analysis.confidenceScore}%` }}></div>
+                        </div>
+                        {/* 🟢 Live Session Average */}
+                        {confidenceHistory.length > 0 && (
+                          <div className="running-avg" style={{ fontSize: '0.65rem', color: '#00ff88', marginTop: '4px', textAlign: 'right' }}>
+                            Session Avg: {Math.round(confidenceHistory.reduce((a, b) => a + b, 0) / confidenceHistory.length)}%
+                          </div>
+                        )}
+                    </div>
+
+                    {/* 🟢 NEW: Current Expression */}
+                    <div className="status-pill mood">
+                      Mood: {analysis.dominantExpression}
+                    </div>
+
+                    {analysis.isSmiling && (
+                      <div className="status-pill smile">
+                        Nice Smile!
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {!isCamOn && (
                   <div className="cam-placeholder">
                     {/* 🟢 Replaced FA Icon with SVG */}
@@ -424,13 +538,23 @@ const LiveInterview = () => {
                 <div className="cam-label">You</div>
               </div>
 
-              {/* 2. AI Visualizer Box */}
-              <div className="cam-box ai-cam">
-                <div className="ai-visualizer">
-                  <div className="ai-ring ring-1"></div>
-                  <div className="ai-ring ring-2"></div>
-                  <div className="ai-ring ring-3"></div>
-                  <div className="ai-core"></div>
+              {/* 2. AI Box */}
+              <div className={`cam-box ai-cam ${isAITalking ? "ai-talking" : ""}`}>
+                <div className="ai-placeholder">
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <span>AI Assistant</span>
                 </div>
                 <div className="cam-label ai-label">AI Interviewer</div>
               </div>
@@ -548,13 +672,19 @@ const LiveInterview = () => {
               {fullTranscript.map((item, idx) => (
                 <div className="history-item" key={idx}>
                   <div className="bubble ai-bubble">
-                    <strong>AI:</strong> {item.question}
+                    <strong>Question:</strong> {item.question}
                   </div>
                   <div className="bubble user-bubble">
-                    <strong>You:</strong> {item.answer}
+                    <strong>Your Answer:</strong> {item.answer}
                   </div>
+                  {item.feedback && (
+                    <div className="bubble ai-feedback-bubble">
+                      <strong>AI Feedback:</strong> {item.feedback}
+                    </div>
+                  )}
                 </div>
               ))}
+              <div ref={transcriptEndRef} />
             </div>
 
             {/* 2. Active Question */}
@@ -565,11 +695,33 @@ const LiveInterview = () => {
               </div>
               <h3 className="active-question">{questions[currentIndex]}</h3>
 
+              {/* 🟢 AI COPILOT HINT UI */}
+              <div className="copilot-section" style={{ marginBottom: '15px' }}>
+                {!hint ? (
+                  <button 
+                    className="get-hint-btn" 
+                    onClick={handleGetHint} 
+                    disabled={isFetchingHint}
+                    style={{ background: 'transparent', border: '1px solid #00ff8880', color: '#00ff88', padding: '6px 12px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    {isFetchingHint ? (
+                       <><div className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }}></div> Analyzing...</>
+                    ) : (
+                       <>💡 Need a hint?</>
+                    )}
+                  </button>
+                ) : (
+                  <div className="hint-box" style={{ background: '#00ff8815', borderLeft: '3px solid #00ff88', padding: '10px 15px', borderRadius: '4px', fontSize: '0.9rem', color: '#e0e0e0' }}>
+                    <strong>🧠 Copilot:</strong> {hint}
+                  </div>
+                )}
+              </div>
+
               {/* 3. Input Area */}
               <textarea
                 className="answer-input"
                 placeholder="Type your answer here or use the microphone..."
-                value={accumulatedAnswer + (transcript ? " " + transcript : "")}
+                value={transcript}
                 onChange={handleTextChange} // 🟢 Ensure typing pauses mic
               />
 

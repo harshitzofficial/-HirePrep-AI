@@ -9,6 +9,28 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY,
 });
 
+const MODEL_NAME = "gemini-2.5-flash-lite";
+
+// 🟢 Helper function for exponential backoff retries (handles 429 errors)
+async function callAiWithRetry(fn, maxRetries = 3) {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (error.status === 429 || error.message?.includes('429') || error.message?.includes('quota')) {
+        const waitTime = Math.pow(2, i) * 1000 + Math.random() * 1000;
+        console.warn(`⚠️ AI Rate Limit hit. Retrying in ${Math.round(waitTime)}ms... (Attempt ${i + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
 // Helper function to create a unique fingerprint of the user's inputs
 function generateCacheKey(prefix, resume, selfDescription, jobDescription) {
   // Combine inputs into one string, then hash it so it's a short, unique string
@@ -179,14 +201,16 @@ const generateDynamicRoadmap = async ({ jobDescription, resumeText, days }) => {
     Day 1 should be fundamentals/planning, and Day ${days} should be mock interviews/rest.`;
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: zodToJsonSchema(dynamicRoadmapSchema),
-            },
-        });
+        const response = await callAiWithRetry(() => 
+            ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: zodToJsonSchema(dynamicRoadmapSchema),
+                },
+            })
+        );
         return JSON.parse(response.text);
     } catch (error) {
         console.error("Dynamic Roadmap Error:", error);
@@ -221,14 +245,16 @@ async function generateInterviewReport({
     `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: zodToJsonSchema(interviewReportSchema),
-      },
-    });
+    const response = await callAiWithRetry(() => 
+      ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: zodToJsonSchema(interviewReportSchema),
+        },
+      })
+    );
 
     const result = JSON.parse(response.text);
 
@@ -256,17 +282,26 @@ let globalBrowser = null;
 async function getBrowser() {
     if (!globalBrowser) {
         console.log("🌐 Launching Puppeteer Browser instance...");
-        globalBrowser = await puppeteer.launch({
+
+        const launchOptions = {
             headless: true,
-            // 🚀 THE FIX: Force it to use Alpine's Chromium if the env variable fails
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser', 
             args: [
-                "--no-sandbox", 
+                "--no-sandbox",
                 "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage", // Prevents memory crashes
                 "--disable-gpu" // Extra stability on Linux servers
             ],
-        });
+        };
+
+        // 🚀 THE FIX: Don't hardcode a Linux path on Windows!
+        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+            launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        } else if (process.platform === 'linux') {
+            // Only use this default if we're actually on a Linux server (Docker/Render)
+            launchOptions.executablePath = '/usr/bin/chromium-browser';
+        }
+
+        globalBrowser = await puppeteer.launch(launchOptions);
     }
     return globalBrowser;
 }
@@ -346,14 +381,16 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
     
     Return ONLY the JSON with the "html" field.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: zodToJsonSchema(resumePdfSchema),
-      },
-    });
+    const response = await callAiWithRetry(() => 
+      ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: zodToJsonSchema(resumePdfSchema),
+        },
+      })
+    );
 
     jsonContent = JSON.parse(response.text);
 
@@ -400,14 +437,16 @@ const generateLiveQuestions = async ({
     Return the output strictly in the requested JSON format.
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: zodToJsonSchema(liveQuestionsSchema),
-      },
-    });
+    const response = await callAiWithRetry(() => 
+      ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: zodToJsonSchema(liveQuestionsSchema),
+        },
+      })
+    );
 
     return JSON.parse(response.text);
 
@@ -445,24 +484,66 @@ const generateLiveQuestions = async ({
   }
 };
 
-const evaluateLiveInterview = async ({ transcript, jobDescription }) => {
+const evaluateLiveInterview = async ({ transcript, jobDescription, aiMetrics }) => {
+  if (!transcript || transcript.length === 0) {
+    return {
+      overallScore: 0,
+      summary: "Interview ended before answering any questions. No data to evaluate.",
+      skills: {
+        confidence: 0,
+        communication: 0,
+        correctness: 0
+      },
+      questionBreakdown: []
+    };
+  }
+
   const prompt = `You are an expert hiring manager evaluating a candidate's live interview. 
     Review the following transcript. Score them aggressively but fairly out of 10.
     Provide an overall score, scores for specific skills, and a breakdown of each question.
     
+    CRITICAL BIOMETRIC DATA:
+    The candidate's camera was tracked during this interview. Incorporate this data into your final "Confidence" and "Communication" scores:
+    - Average Body Language Confidence: ${aiMetrics?.avgConfidence || 'Unknown'} / 100
+    - Eye Contact Score: ${aiMetrics?.eyeContactScore || 'Unknown'} / 100
+
     Target Job: ${jobDescription}
     Interview Transcript: ${JSON.stringify(transcript)}`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: zodToJsonSchema(evaluationSchema),
-    },
-  });
-
-  return JSON.parse(response.text);
+  try {
+    const response = await callAiWithRetry(() => 
+      ai.models.generateContent({
+        model: MODEL_NAME,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: zodToJsonSchema(evaluationSchema),
+        },
+      })
+    );
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error("DETAILED EVALUATION ERROR:", error);
+    
+    if (error.status === 429 || error.message?.includes('429') || error.message?.includes('quota')) {
+      console.log("⚠️ API Quota Reached! Silently loading fallback evaluation.");
+      return {
+        overallScore: 0,
+        summary: "Evaluation unavailable at the moment due to AI server capacity. Please try again later.",
+        skills: {
+          confidence: 0,
+          communication: 0,
+          correctness: 0
+        },
+        questionBreakdown: transcript.map(t => ({
+          question: t.question,
+          score: 0,
+          feedback: "Evaluation unavailable due to high server load."
+        }))
+      };
+    }
+    throw error;
+  }
 };
 // In ai.service.js
 // In ai.service.js
@@ -482,10 +563,12 @@ async function evaluateSingleAnswer({ question, answer, jobDescription }) {
 
     try {
         // 🟢 FIXED: Using the new SDK syntax to match the rest of your file!
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-        });
+        const response = await callAiWithRetry(() => 
+            ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+            })
+        );
         
         return { feedback: response.text };
     } catch (error) {
@@ -493,13 +576,45 @@ async function evaluateSingleAnswer({ question, answer, jobDescription }) {
         throw error;
     }
 }
+async function generateLiveHint({ question, jobDescription }) {
+    console.log("🧠 Generating AI Copilot Hint...");
+    
+    const prompt = `
+    You are a subtle AI Copilot helping a candidate during a live interview.
+    
+    Role: ${jobDescription}
+    Current Question: ${question}
+
+    Provide a very short, 1-sentence hint to help the candidate get unstuck. 
+    DO NOT give them the direct answer. Just give them a mental nudge. 
+    Example: "Hint: Try using the STAR method to structure your story." or "Hint: Think about how you handled the database scaling."
+    `;
+
+    try {
+        const response = await callAiWithRetry(() => 
+            ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+            })
+        );
+        return { hint: response.text };
+    } catch (error) {
+        console.error("Live Hint Error:", error);
+        return { hint: "Hint: Take a deep breath and break the problem down into smaller steps." };
+    }
+}
+
 module.exports = {
   generateInterviewReport,
   generateResumePdf,
   generateLiveQuestions,
   evaluateLiveInterview,
   evaluateSingleAnswer,
-  generateDynamicRoadmap
+  generateLiveHint,
+  generateDynamicRoadmap,
+  ai,
+  callAiWithRetry,
+  MODEL_NAME
 };
 
 /*

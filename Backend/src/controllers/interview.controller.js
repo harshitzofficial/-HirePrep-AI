@@ -1,8 +1,22 @@
 const pdfParse = require("pdf-parse");
-const { generateInterviewReport, generateResumePdf } = require("../services/ai.service");
 const interviewReportModel = require("../models/interviewReport.model");
-const { generateLiveQuestions, evaluateLiveInterview, evaluateSingleAnswer } = require("../services/ai.service");
-const { generateDynamicRoadmap } = require("../services/ai.service");
+const interviewSessionModel = require("../models/interviewSession.model");
+const { zodToJsonSchema } = require("zod-to-json-schema");
+const { z } = require("zod");
+
+// Fix #12: consolidated all three duplicate require("../services/ai.service") into one
+const {
+    generateInterviewReport,
+    generateResumePdf,
+    generateLiveQuestions,
+    evaluateLiveInterview,
+    evaluateSingleAnswer,
+    generateDynamicRoadmap,
+    generateLiveHint,
+    ai,
+    callAiWithRetry,
+    MODEL_NAME
+} = require("../services/ai.service");
 
 // 🚀 Redis & Crypto for Caching
 const redisClient = require("../config/redis");
@@ -182,15 +196,51 @@ const getLiveQuestionsController = async (req, res) => {
 
 const evaluateInterviewController = async (req, res) => {
     try {
-        const { transcript, jobDescription } = req.body;
+        const { transcript, jobDescription, interviewReportId, aiMetrics } = req.body;
         
-        const data = await evaluateLiveInterview({ transcript, jobDescription });
-        res.status(200).json(data);
+        const evaluationData = await evaluateLiveInterview({ transcript, jobDescription, aiMetrics });
+
+        // Fix #4: include aiMetrics in the saved session so it's not discarded
+        const session = await interviewSessionModel.create({
+            user: req.user.id,
+            interviewReport: interviewReportId,
+            transcript,
+            aiMetrics: {
+                avgConfidence:   aiMetrics?.avgConfidence   ?? 0,
+                eyeContactScore: aiMetrics?.eyeContactScore ?? 0
+            },
+            ...evaluationData
+        });
+
+        res.status(200).json({
+            ...evaluationData,
+            sessionId: session._id
+        });
     } catch (error) {
         console.error("Evaluation Error:", error);
         res.status(500).json({ message: "Failed to evaluate interview." });
     }
 };
+
+/**
+ * @description Controller to get all interview sessions for the logged in user.
+ */
+const getAllInterviewSessionsController = async (req, res) => {
+    try {
+        const sessions = await interviewSessionModel.find({ user: req.user.id })
+            .populate('interviewReport', 'title') // Get the job title from the report
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            message: "Interview sessions fetched successfully.",
+            sessions
+        });
+    } catch (error) {
+        console.error("Fetch Sessions Error:", error);
+        res.status(500).json({ message: "Failed to fetch interview history." });
+    }
+};
+
 const evaluateSingleAnswerController = async (req, res) => {
     try {
         // Extract the specific question, the user's answer, and the JD
@@ -206,14 +256,50 @@ const evaluateSingleAnswerController = async (req, res) => {
         res.status(500).json({ message: "Failed to generate instant feedback." });
     }
 };
+const getLiveHintController = async (req, res) => {
+    try {
+        const { question, jobDescription } = req.body;
+        const data = await generateLiveHint({ question, jobDescription });
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("Live Hint Error:", error);
+        res.status(500).json({ message: "Failed to generate hint." });
+    }
+};
+
+/**
+ * @description Controller to delete an interview report by ID.
+ * Only the owner can delete their own report.
+ */
+const deleteInterviewReportController = async (req, res) => {
+    try {
+        const { interviewId } = req.params;
+        const report = await interviewReportModel.findOneAndDelete({
+            _id: interviewId,
+            user: req.user.id
+        });
+
+        if (!report) {
+            return res.status(404).json({ message: "Report not found or you are not authorized to delete it." });
+        }
+
+        res.status(200).json({ message: "Interview report deleted successfully." });
+    } catch (error) {
+        console.error("Delete Report Error:", error);
+        res.status(500).json({ message: "Failed to delete report." });
+    }
+};
+
 module.exports = { 
     generateInterViewReportController, 
     getInterviewReportByIdController, 
     getAllInterviewReportsController, 
+    deleteInterviewReportController,
     generateResumePdfController, 
     getLiveQuestionsController, 
     evaluateInterviewController ,
     evaluateSingleAnswerController,
-    generateDynamicRoadmapController
-    
+    generateDynamicRoadmapController,
+    getAllInterviewSessionsController,
+    getLiveHintController
 };

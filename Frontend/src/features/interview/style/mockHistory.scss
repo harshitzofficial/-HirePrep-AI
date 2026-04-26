@@ -1,0 +1,234 @@
+.mock-history-page {
+    min-height: 100vh;
+    background-color: #050505;
+    color: #ffffff;
+    padding: 3rem 2rem;
+    font-family: 'Inter', sans-serif;
+
+    .history-header {
+        max-width: 1200px;
+        margin: 0 auto 3rem;
+        text-align: left;
+
+        .back-btn {
+            background: transparent;
+            color: #888;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            transition: color 0.2s;
+            &:hover { color: #00ff88; }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        p { color: #666; font-size: 1.1rem; }
+    }
+
+    .history-grid {
+        display: grid;
+        grid-template-columns: 400px 1fr;
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+
+        @media (max-width: 1000px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .panel-card {
+        background: rgba(20, 20, 20, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 24px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+
+        h2 {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            i { color: #00ff88; }
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: -1rem;
+            margin-bottom: 2rem;
+        }
+    }
+
+    /* WEAKNESS LIST */
+    .weakness-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+
+        .weakness-item {
+            .weakness-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 0.8rem;
+
+                .dot {
+                    width: 8px; height: 8px;
+                    background: #ff4d4d;
+                    border-radius: 50%;
+                    box-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
+                }
+
+                h3 { font-size: 1rem; color: #fff; font-weight: 600; }
+            }
+
+            .advice-box {
+                background: rgba(0, 255, 136, 0.03);
+                border-left: 2px solid #00ff88;
+                padding: 1rem;
+                border-radius: 0 12px 12px 0;
+
+                p {
+                    font-size: 0.9rem;
+                    color: #aaa;
+                    line-height: 1.5;
+                    strong { color: #00ff88; }
+                }
+            }
+        }
+    }
+
+    /* STATS OVERVIEW */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+
+        .stat-box {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1.5rem;
+            border-radius: 16px;
+
+            .stat-value {
+                display: block;
+                font-size: 2rem;
+                font-weight: 800;
+                color: #00ff88;
+                margin-bottom: 0.2rem;
+            }
+
+            .stat-label {
+                font-size: 0.75rem;
+                color: #555;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+        }
+    }
+
+    /* SESSION LIST */
+    .sessions-panel {
+        h2 { font-size: 1.5rem; margin-bottom: 2rem; }
+    }
+
+    .session-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .session-card {
+        background: rgba(20, 20, 20, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: 20px;
+        padding: 1.8rem;
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(0, 255, 136, 0.2);
+        }
+
+        .session-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+
+            .session-info {
+                h3 { font-size: 1.2rem; color: #fff; margin-bottom: 4px; }
+                .date { color: #555; font-size: 0.85rem; }
+            }
+
+            .score-badge {
+                text-align: right;
+                .score { font-size: 1.8rem; font-weight: 800; color: #fff; }
+                .total { color: #444; font-size: 1rem; font-weight: 600; }
+            }
+        }
+
+        .skill-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+
+            .skill-pill {
+                background: rgba(255, 255, 255, 0.05);
+                padding: 4px 12px;
+                border-radius: 100px;
+                font-size: 0.75rem;
+                display: flex;
+                gap: 8px;
+
+                .skill-name { color: #888; text-transform: capitalize; }
+                .skill-val { color: #00ff88; font-weight: bold; }
+            }
+        }
+
+        .summary-preview {
+            font-size: 0.95rem;
+            color: #888;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    }
+
+    .history-loading {
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(0, 255, 136, 0.1);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        p { color: #666; letter-spacing: 1px; }
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+}
