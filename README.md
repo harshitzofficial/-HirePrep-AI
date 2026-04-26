@@ -1158,9 +1158,3 @@ stateDiagram-v2
 
 ---
 
-<p align="center">
-  Built with Google Gemini, React 19, Node.js, MongoDB, Redis, and Puppeteer.
-</p>
-```
-
----
