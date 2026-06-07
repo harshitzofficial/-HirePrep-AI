@@ -51,6 +51,16 @@ $font-stack:     'Outfit', system-ui, sans-serif;
     }
 }
 
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 // ── Main Card ─────────────────────────────────────────────────────────────────
 .interview-card {
     width: 100%;
@@ -62,6 +72,8 @@ $font-stack:     'Outfit', system-ui, sans-serif;
     border-radius: 1.5rem;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
     overflow: hidden;
+    opacity: 0;
+    animation: slideInUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 
     &__body {
         display: flex;
@@ -323,6 +335,8 @@ $font-stack:     'Outfit', system-ui, sans-serif;
 .recent-reports {
     margin-top: 3rem;
     width: 100%;
+    opacity: 0;
+    animation: slideInUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards;
 
     h2 {
         font-size: 1.5rem;
@@ -366,17 +380,33 @@ $font-stack:     'Outfit', system-ui, sans-serif;
         flex: 0 0 auto; 
         width: 250px; // Gives every card a uniform, readable width
         
-        /* Your existing card styles below (adjust as needed) */
+        position: relative;
         background: #1a1a1a;
         border: 1px solid #333;
         border-radius: 12px;
         padding: 1.5rem;
         cursor: pointer;
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        transition: transform 0.1s ease-out, border-color 0.2s ease, box-shadow 0.2s ease;
+        transform-style: preserve-3d;
+        overflow: hidden;
 
         &:hover {
-            transform: translateY(-5px);
             border-color: #00ff88;
+            box-shadow: 0 15px 30px rgba(0, 255, 136, 0.1), 0 0 15px rgba(0, 255, 136, 0.05);
+        }
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(
+                400px circle at var(--glare-x) var(--glare-y),
+                rgba(255, 255, 255, 0.08),
+                transparent 40%
+            );
+            opacity: var(--glare-opacity);
+            transition: opacity 0.3s ease;
+            pointer-events: none;
         }
 
         h3 {

@@ -7,8 +7,8 @@ import "../style/mockHistory.scss";
 const MockHistory = () => {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
-  // Fix #10: removed unused `weaknesses` state — was never read or rendered
   const [loading, setLoading] = useState(true);
+  const [tooltip, setTooltip] = useState({ visible: false, text: "", x: 0, y: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -132,7 +132,15 @@ const MockHistory = () => {
                     ))}
                   </div>
 
-                  <p className="summary-preview">{session.summary}</p>
+                  <p 
+                    className="summary-preview"
+                    onMouseMove={(e) => {
+                      setTooltip({ visible: true, text: session.summary, x: e.clientX + 15, y: e.clientY + 15 });
+                    }}
+                    onMouseLeave={() => setTooltip({ visible: false, text: "", x: 0, y: 0 })}
+                  >
+                    {session.summary}
+                  </p>
                 </div>
               ))
             ) : (
@@ -146,6 +154,19 @@ const MockHistory = () => {
           </div>
         </section>
       </div>
+
+      {/* CUSTOM MOUSE TOOLTIP */}
+      {tooltip.visible && (
+        <div 
+          className="mouse-tracking-tooltip"
+          style={{
+            left: `${tooltip.x}px`,
+            top: `${tooltip.y}px`
+          }}
+        >
+          {tooltip.text}
+        </div>
+      )}
     </div>
   );
 };

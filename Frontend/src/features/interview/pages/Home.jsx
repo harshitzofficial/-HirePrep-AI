@@ -5,6 +5,69 @@ import { useNavigate } from 'react-router'
 import { useAuth } from '../../auth/hooks/useAuth.js'
 import { deleteInterviewReport } from '../services/interview.api.js'
 
+const ReportCard = ({ report, i, navigate, handleDeleteReport }) => {
+    const [tiltStyle, setTiltStyle] = useState({});
+
+    const handleMouseMove = (e) => {
+        const card = e.currentTarget;
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const rotateX = ((y - centerY) / centerY) * -8;
+        const rotateY = ((x - centerX) / centerX) * 8;
+
+        const glareX = (x / rect.width) * 100;
+        const glareY = (y / rect.height) * 100;
+
+        setTiltStyle({
+            transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
+            '--glare-x': `${glareX}%`,
+            '--glare-y': `${glareY}%`,
+            '--glare-opacity': '1'
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setTiltStyle({
+            transform: `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`,
+            '--glare-opacity': '0'
+        });
+    };
+
+    return (
+        <li 
+            className='report-item' 
+            onClick={() => navigate(`/interview/${report._id}`)}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            style={{
+                ...tiltStyle,
+                animation: `fadeInUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`,
+                animationDelay: `${0.2 + i * 0.1}s`,
+                opacity: 0
+            }}
+        >
+            <div className='report-item__top'>
+                <h3>{report.title || 'Untitled Position'}</h3>
+                <button
+                    className='report-delete-btn'
+                    onClick={(e) => handleDeleteReport(e, report._id)}
+                    aria-label="Delete report"
+                    title="Delete this plan"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+            </div>
+            <p className='report-meta'>Generated on {new Date(report.createdAt).toLocaleDateString()}</p>
+            <p className={`match-score ${report.matchScore >= 80 ? 'score--high' : report.matchScore >= 60 ? 'score--mid' : 'score--low'}`}>Match Score: {report.matchScore}%</p>
+        </li>
+    );
+};
+
 const Home = () => {
 
     const { loading, generateReport, reports, setReports } = useInterview()
@@ -261,22 +324,14 @@ const Home = () => {
                 <section className='recent-reports'>
                     <h2>My Recent Interview Plans</h2>
                     <ul className='reports-list'>
-                        {reports.map(report => (
-                            <li key={report._id} className='report-item' onClick={() => navigate(`/interview/${report._id}`)}>
-                                <div className='report-item__top'>
-                                    <h3>{report.title || 'Untitled Position'}</h3>
-                                    <button
-                                        className='report-delete-btn'
-                                        onClick={(e) => handleDeleteReport(e, report._id)}
-                                        aria-label="Delete report"
-                                        title="Delete this plan"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                                    </button>
-                                </div>
-                                <p className='report-meta'>Generated on {new Date(report.createdAt).toLocaleDateString()}</p>
-                                <p className={`match-score ${report.matchScore >= 80 ? 'score--high' : report.matchScore >= 60 ? 'score--mid' : 'score--low'}`}>Match Score: {report.matchScore}%</p>
-                            </li>
+                        {reports.map((report, i) => (
+                            <ReportCard 
+                                key={report._id} 
+                                report={report} 
+                                i={i} 
+                                navigate={navigate} 
+                                handleDeleteReport={handleDeleteReport} 
+                            />
                         ))}
                     </ul>
                 </section>

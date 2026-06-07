@@ -84,6 +84,7 @@ export const useInterview = () => {
                 link.setAttribute("download", `resume_${interviewReportId}.pdf`)
                 document.body.appendChild(link)
                 link.click()
+                window.URL.revokeObjectURL(url) // Clean up
             }
         } catch (error) {
             // 🚨 PDF generation uses Gemini for HTML, so it can also hit the rate limit!
@@ -98,6 +99,28 @@ export const useInterview = () => {
         }
     }
 
+    const previewResumePdf = async (interviewReportId) => {
+        setLoading(true)
+        try {
+            const response = await generateResumePdf({ interviewReportId })
+            
+            if (response) {
+                const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
+                return { url, filename: `resume_${interviewReportId}.pdf` }
+            }
+        } catch (error) {
+            if (error.response && error.response.status === 429) {
+                alert("⏳ You've hit the AI generation limit! Please wait 15 minutes.");
+            } else {
+                console.error("Failed to generate PDF preview:", error)
+                alert("Failed to preview the resume. Please try again later.");
+            }
+            return null
+        } finally {
+            setLoading(false)
+        }
+    }
+
     useEffect(() => {
         if (interviewId) {
             getReportById(interviewId)
@@ -106,6 +129,6 @@ export const useInterview = () => {
         }
     }, [ interviewId ])
 
-    return { loading, report, reports, setReports, generateReport, getReportById, getReports, getResumePdf }
+    return { loading, report, reports, setReports, generateReport, getReportById, getReports, getResumePdf, previewResumePdf }
 
 }

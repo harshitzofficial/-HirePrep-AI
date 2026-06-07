@@ -24,8 +24,17 @@ const crypto = require("crypto");
 
 const generateDynamicRoadmapController = async (req, res) => {
     try {
-        const { jobDescription, resumeText, days } = req.body;
+        const { interviewId, jobDescription, resumeText, days } = req.body;
         const data = await generateDynamicRoadmap({ jobDescription, resumeText, days });
+        
+        // If interviewId is provided, update the database so it persists
+        if (interviewId) {
+            await interviewReportModel.findByIdAndUpdate(
+                interviewId, 
+                { preparationPlan: data.preparationPlan }
+            );
+        }
+
         res.status(200).json(data);
     } catch (error) {
         console.error("Roadmap Generation Error:", error);

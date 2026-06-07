@@ -317,7 +317,7 @@ async function generatePdfFromHtml(htmlContent) {
         const pdfBuffer = await page.pdf({
             format: "A4",
             printBackground: true, // 🚀 THE FIX: Ensures AI-generated colors/borders actually render!
-            margin: { top: "14mm", bottom: "14mm", left: "14mm", right: "14mm" }, // Tighter margins
+            margin: { top: "8mm", bottom: "8mm", left: "10mm", right: "10mm" }, // Even tighter margins
         });
 
         return pdfBuffer;
@@ -331,7 +331,7 @@ async function generatePdfFromHtml(htmlContent) {
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
   const cacheKey = generateCacheKey(
-    "resume_html",
+    "resume_html_v6",
     resume,
     selfDescription,
     jobDescription,
@@ -349,39 +349,127 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
   }
 
   if (!jsonContent) {
-    console.log("🧠 Cache Miss: Calling Gemini AI for Resume HTML...");
-    
+    console.log("🧠 Cache Miss: Calling Gemini AI for Enhanced Resume HTML...");
+
     const resumePdfSchema = z.object({
-      html: z.string().describe("The highly structured HTML content of the resume"),
+      html: z.string().describe("The complete HTML document for the enhanced resume"),
     });
 
-    // 🚀 THE FIX: A highly aggressive, structured prompt for the AI
-    const prompt = `You are an expert executive resume writer and frontend developer.
-    Your task is to generate a strictly ONE-PAGE, highly professional, ATS-friendly resume in HTML format.
-    
-    Candidate Data:
-    - Resume: ${resume}
-    - Self Description: ${selfDescription}
-    - Target Job: ${jobDescription}
+    const prompt = `You are a dual-expert: (1) a Senior ATS Resume Coach at a top FAANG recruiting firm, and (2) a professional frontend developer who crafts stunning HTML/CSS resumes.
 
-    CRITICAL HTML/CSS RULES:
-    1. MUST use embedded <style> tags. Do not use external stylesheets.
-    2. Base styling: Use font-family: 'Helvetica', 'Arial', sans-serif; color: #333; line-height: 1.4;
-    3. Font sizes: Headers (16px-18px), Job Titles (13px bold), Body Text (11px). Do NOT use huge fonts.
-    4. Margins/Padding: Keep padding minimal (e.g., 2px to 5px) to ensure everything fits on ONE page.
-    5. Layout: Use CSS Flexbox to align content. For example, align Job Titles to the left and Dates to the right on the same line.
-    6. Structure: 
-       - Header (Name, Contact Info, centered)
-       - Professional Summary (3-4 concise lines tailored to the JD)
-       - Core Skills (Displayed as a compact comma-separated list or small flex boxes)
-       - Work Experience (Punchy, metric-driven bullet points. Max 3-4 bullets per role)
-       - Education
-    7. Cut the fluff. Discard irrelevant experience to ensure it strictly fits on a single A4 page.
-    8. Add subtle, professional styling (e.g., a thin 1px bottom border under section headers).
-    
-    Return ONLY the JSON with the "html" field.`;
+You will perform TWO phases:
 
-    const response = await callAiWithRetry(() => 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1: DEEP RESUME ANALYSIS & ENHANCEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Here is the candidate's raw data. Read it carefully:
+
+--- ORIGINAL RESUME TEXT ---
+${resume || "Not provided"}
+
+--- CANDIDATE'S SELF DESCRIPTION ---
+${selfDescription || "Not provided"}
+
+--- TARGET JOB DESCRIPTION ---
+${jobDescription || "Not provided"}
+
+Now perform these enhancement steps on the candidate's actual content:
+
+STEP 1 - EXTRACT (do not invent):
+  • Full name, email, phone, LinkedIn, GitHub from the resume text above
+  • Every project name, company, job title, degree, school, GPA, year/date
+  • Every skill, technology, tool mentioned
+
+STEP 2 - ENHANCE BULLET POINTS (rewrite, don't invent):
+  • Take each bullet point from the original resume
+  • Rewrite it using strong action verbs (Engineered, Architected, Optimized, Reduced, Increased, Built, Deployed, Automated, Led, Designed)
+  • Where the original mentions a metric, keep it and make it stand out
+  • Where no metric exists, reframe the impact (e.g. "improving developer experience" → "streamlining workflow for 5+ engineers")
+  • Make every bullet ATS-optimized: weave in relevant keywords from the Job Description naturally
+  • Keep bullets concise: 1 impactful sentence each
+
+STEP 3 - WRITE A POWERFUL SUMMARY:
+  • Write a 2-sentence professional summary
+  • Sentence 1: Who the candidate is + their strongest skills (from their actual data)
+  • Sentence 2: What value they bring to the target role (tailored to the JD)
+  • Do NOT make up years of experience unless explicitly stated
+
+STEP 4 - SKILL OPTIMIZATION:
+  • List all real skills from the resume
+  • Add any skills that are clearly implied by their projects but not explicitly listed
+  • Prioritize skills that appear in the Job Description (for ATS keyword matching)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2: RENDER BEAUTIFUL ONE-PAGE HTML RESUME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Using the enhanced content from Phase 1, generate a complete, self-contained HTML document.
+
+ABSOLUTE RULES:
+• Output a full HTML document starting with <!DOCTYPE html>
+• ALL CSS must be inside a single <style> tag in <head>
+• ONE PAGE ONLY — everything must fit on a single A4 page
+• Use ONLY real data extracted in Phase 1. NEVER invent fake names, companies, schools, or contact info.
+
+CSS & DESIGN SPECIFICATIONS:
+\`\`\`css
+/* Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+  margin: 0; padding: 14px 18px;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 10.5px; color: #1f2937; line-height: 1.35;
+  background: #fff;
+}
+
+/* HEADER */
+.name { font-size: 22px; font-weight: 700; color: #111827; text-align: center; margin: 0 0 2px; letter-spacing: -0.3px; }
+.contact { font-size: 9.5px; color: #6b7280; text-align: center; margin: 0 0 8px; }
+.contact a { color: #2563eb; text-decoration: none; }
+
+/* SECTION HEADINGS */
+.section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.2px; color: #1e40af;
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 2px; margin: 9px 0 4px;
+}
+
+/* ENTRY ROWS */
+.entry-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1px; }
+.entry-title { font-size: 11px; font-weight: 600; color: #111827; }
+.entry-date { font-size: 9.5px; color: #9ca3af; white-space: nowrap; margin-left: 8px; }
+.entry-sub { font-size: 10px; font-weight: 500; color: #2563eb; margin-bottom: 2px; }
+
+/* BULLETS */
+ul { margin: 2px 0 4px; padding-left: 14px; }
+li { margin-bottom: 2px; color: #374151; font-size: 10.5px; }
+
+/* SKILL CHIPS */
+.chips { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 2px; }
+.chip {
+  background: #eff6ff; border: 1px solid #bfdbfe;
+  border-radius: 3px; padding: 1px 6px;
+  font-size: 9.5px; color: #1e40af; font-weight: 500;
+}
+
+/* SUMMARY */
+.summary { font-size: 10.5px; color: #374151; line-height: 1.4; margin-bottom: 2px; }
+\`\`\`
+
+HTML STRUCTURE TO FOLLOW EXACTLY:
+1. <header>: .name then .contact (email | phone | LinkedIn | GitHub — only show what's available)
+2. Summary section with class="section-title" and <p class="summary">
+3. Skills section: one .chips div containing all .chip spans
+4. Projects section (most impressive first): each project gets .entry-header (title + date), .entry-sub (tech stack or GitHub link as text), and a <ul> of 2-3 enhanced bullets
+5. Education section: .entry-header (degree + dates), .entry-sub (institution + GPA)
+6. Achievements section (if any real achievements exist in the data): simple <ul> list
+
+Return ONLY a valid JSON object: { "html": "<complete html string here>" }`;
+
+    const response = await callAiWithRetry(() =>
       ai.models.generateContent({
         model: MODEL_NAME,
         contents: prompt,
