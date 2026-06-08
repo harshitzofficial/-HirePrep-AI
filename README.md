@@ -1,4 +1,5 @@
 <div align="center">
+   
 ## HirePrep AI
    
 **A full-stack AI-powered technical interview preparation platform**
