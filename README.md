@@ -1,7 +1,5 @@
 <div align="center">
-
 # HirePrep AI
-
 **A full-stack AI-powered technical interview preparation platform**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
