@@ -14,6 +14,105 @@
 </div>
 
 ---
+```mermaid  
+graph TD  
+    subgraph "User Browser"  
+        UI["React SPA (Vite)"]  
+        CAM["Webcam / Microphone"]  
+        FACEAPI["face-api.js (TensorFlow.js)"]  
+        STT["Web Speech API (STT/TTS)"]  
+        CAM --> FACEAPI  
+        CAM --> STT  
+        FACEAPI --> UI  
+        STT --> UI  
+    end  
+  
+    subgraph "Frontend State (React Context)"  
+        AP["AuthProvider"]  
+        IP["InterviewProvider"]  
+        UI --> AP  
+        UI --> IP  
+    end  
+  
+    subgraph "Backend (Express.js)"  
+        SERVER["server.js"]  
+        APP["app.js (Middleware Stack)"]  
+        SERVER --> APP  
+  
+        subgraph "Middleware"  
+            HELMET["helmet (Security Headers)"]  
+            CORS["Manual CORS"]  
+            COOKIE["cookieParser"]  
+            AUTH_MW["authUser (JWT + Redis Blacklist)"]  
+        end  
+  
+        subgraph "Route Namespaces"  
+            R_AUTH["/api/auth"]  
+            R_INTERVIEW["/api/interview"]  
+            R_JOBS["/api/jobs"]  
+        end  
+  
+        subgraph "Controllers"  
+            C_AUTH["auth.controller.js"]  
+            C_INTERVIEW["interview.controller.js"]  
+            C_JOBS["jobs.controller.js"]  
+        end  
+  
+        subgraph "Services"  
+            S_AUTH["auth.service.js"]  
+            S_INTERVIEW["interview.service.js"]  
+            S_AI["ai.service.js"]  
+        end  
+  
+        APP --> HELMET  
+        APP --> CORS  
+        APP --> COOKIE  
+        APP --> AUTH_MW  
+        APP --> R_AUTH  
+        APP --> R_INTERVIEW  
+        APP --> R_JOBS  
+        R_AUTH --> C_AUTH  
+        R_INTERVIEW --> C_INTERVIEW  
+        R_JOBS --> C_JOBS  
+        C_AUTH --> S_AUTH  
+        C_INTERVIEW --> S_INTERVIEW  
+        S_INTERVIEW --> S_AI  
+    end  
+  
+    subgraph "AI & PDF Layer"  
+        GEMINI["Google Gemini API (gemini-2.5-flash-lite)"]  
+        PUPPETEER["Puppeteer (Headless Chromium)"]  
+        ZOD["Zod Schema Validation"]  
+        S_AI --> GEMINI  
+        S_AI --> PUPPETEER  
+        GEMINI --> ZOD  
+    end  
+  
+    subgraph "External APIs"  
+        JSEARCH["JSearch (RapidAPI) — Job Listings"]  
+        C_JOBS --> JSEARCH  
+    end  
+  
+    subgraph "Persistence & Cache"  
+        MONGO[("MongoDB Atlas")]  
+        REDIS[("Redis Cloud")]  
+    end  
+  
+    subgraph "Data Models (Mongoose)"  
+        M_USER["user.model.js"]  
+        M_REPORT["interviewReport.model.js"]  
+        M_SESSION["interviewSession.model.js"]  
+    end  
+  
+    UI -- "REST (Axios + withCredentials)" --> APP  
+    S_AUTH --> MONGO  
+    S_INTERVIEW --> MONGO  
+    AUTH_MW --> REDIS  
+    S_AI --> REDIS  
+    MONGO --> M_USER  
+    MONGO --> M_REPORT  
+    MONGO --> M_SESSION
+```
 
 ## Table of Contents
 
