@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const authController = require("../controllers/auth.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
+const { validateRegister, validateLogin } = require("../middlewares/validate.middleware");
 
 const rateLimit = require("express-rate-limit");
 const { RedisStore } = require("rate-limit-redis");
@@ -12,7 +13,13 @@ const authRouter = Router();
 // Blocks bots from brute-forcing passwords or spamming fake accounts
 const authRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // Limit to 20 attempts per IP
+    max: 20, // Limit to 20 attempts per device/email/IP
+    keyGenerator: (req, res) => {
+        // 1. Check for a unique Device ID sent from the frontend
+        // 2. Fallback to the email address they are trying to register/login with
+        // 3. Fallback to the network IP address
+        return req.headers['x-device-id'] || req.body?.email || req.ip;
+    },
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false, xForwardedForHeader: false, default: false },
@@ -31,14 +38,14 @@ const authRateLimiter = rateLimit({
  * @description Register a new user
  * @access Public
  */
-authRouter.post("/register", authRateLimiter, authController.registerUserController);
+authRouter.post("/register", authRateLimiter, validateRegister, authController.registerUserController);
 
 /**
  * @route POST /api/auth/login
  * @description login user with email and password
  * @access Public
  */
-authRouter.post("/login", authRateLimiter, authController.loginUserController);
+authRouter.post("/login", authRateLimiter, validateLogin, authController.loginUserController);
 
 /**
  * @route POST /api/auth/logout

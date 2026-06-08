@@ -1,7 +1,8 @@
 // server ko create karna
 const express = require("express");
 const cookieParser = require("cookie-parser");
-const cors = require("cors"); 
+const cors = require("cors");
+const helmet = require("helmet");
 
 // --- RATE LIMITING IMPORTS ---
 const rateLimit = require("express-rate-limit");
@@ -12,6 +13,7 @@ const redisClient = require("./config/redis");
 const authRouter = require("./routes/auth.routes");
 const interviewRouter = require("./routes/interview.routes");
 const jobRouter = require("./routes/job.routes");
+const errorHandler = require("./middlewares/error.middleware");
 
 const app = express();
 
@@ -19,6 +21,15 @@ const app = express();
 const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
 
 // --- Middleware --- (Security Guards and Traffic Directors)
+
+// 0. Security Headers — helmet protects against clickjacking, MIME sniffing,
+//    XSS, and leaking the Referer header to third parties.
+//    CSP and COEP are disabled because this is a pure API server (no HTML served).
+app.use(helmet({
+    contentSecurityPolicy: false,       // Not needed — we serve JSON, not HTML
+    crossOriginEmbedderPolicy: false,   // Not needed — no HTML served
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow frontend to consume the API
+}));
 
 // 1. Manual CORS handling to ensure credentials and preflight are perfect
 app.use((req, res, next) => {
@@ -53,5 +64,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/interview", interviewRouter); // AI strictly protected
 app.use("/api/jobs", jobRouter); 
 
-module.exports = app;
+// 🔥 Global Error Handler (must be the very last middleware)
+app.use(errorHandler);
 
+module.exports = app;

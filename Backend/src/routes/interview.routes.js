@@ -3,6 +3,15 @@ const authMiddleware = require("../middlewares/auth.middleware")
 const interviewController = require("../controllers/interview.controller")
 const upload = require("../middlewares/file.middleware")
 const multer = require("multer")
+const {
+    validateGenerateReport,
+    validateLiveQuestions,
+    validateEvaluateInterview,
+    validateEvaluateSingleAnswer,
+    validateLiveHint,
+    validateDynamicRoadmap,
+    validateMongoId,
+} = require("../middlewares/validate.middleware");
 
 // --- RATE LIMITING IMPORTS ---
 const rateLimit = require("express-rate-limit");
@@ -14,13 +23,15 @@ const interviewRouter = express.Router()
 // --- Define the AI Rate Limiter ---
 const aiRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // Limit each IP to 10 requests per 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per 15 minutes (increased for local dev)
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false, xForwardedForHeader: false, default: false },
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
-    }),
+    store: redisClient.isOpen
+        ? new RedisStore({
+            sendCommand: (...args) => redisClient.sendCommand(args),
+        })
+        : new rateLimit.MemoryStore(), // Fallback if Redis is down
     message: {
         message: "You have reached your AI generation limit. Please try again in 15 minutes."
     }
@@ -46,13 +57,13 @@ const handleResumeUpload = (req, res, next) => {
  * @route POST /api/interview/
  * @description generate new interview report
  */
-interviewRouter.post("/", authMiddleware.authUser, aiRateLimiter, handleResumeUpload, interviewController.generateInterViewReportController)
+interviewRouter.post("/", authMiddleware.authUser, aiRateLimiter, handleResumeUpload, validateGenerateReport, interviewController.generateInterViewReportController)
 
 /**
  * @route GET /api/interview/report/:interviewId
  * @description get interview report by interviewId.
  */
-interviewRouter.get("/report/:interviewId", authMiddleware.authUser, interviewController.getInterviewReportByIdController)
+interviewRouter.get("/report/:interviewId", authMiddleware.authUser, validateMongoId("interviewId"), interviewController.getInterviewReportByIdController)
 
 /**
  * @route GET /api/interview/
@@ -64,37 +75,37 @@ interviewRouter.get("/", authMiddleware.authUser, interviewController.getAllInte
  * @route POST /api/interview/resume/pdf/:interviewReportId
  * @description generate resume pdf
  */
-interviewRouter.post("/resume/pdf/:interviewReportId", authMiddleware.authUser, aiRateLimiter, interviewController.generateResumePdfController)
+interviewRouter.post("/resume/pdf/:interviewReportId", authMiddleware.authUser, aiRateLimiter, validateMongoId("interviewReportId"), interviewController.generateResumePdfController)
 
 /**
  * @route POST /api/interview/live/questions
  * @description Generate 3 questions for the live audio interview
  */
-interviewRouter.post("/live/questions", authMiddleware.authUser, aiRateLimiter, interviewController.getLiveQuestionsController);
+interviewRouter.post("/live/questions", authMiddleware.authUser, aiRateLimiter, validateLiveQuestions, interviewController.getLiveQuestionsController);
 
 /**
  * @route POST /api/interview/live/evaluate
  * @description Grade the final Q&A transcript (At the end of the interview)
  */
-interviewRouter.post("/live/evaluate", authMiddleware.authUser, aiRateLimiter, interviewController.evaluateInterviewController);
+interviewRouter.post("/live/evaluate", authMiddleware.authUser, aiRateLimiter, validateEvaluateInterview, interviewController.evaluateInterviewController);
 
 /**
  * @route POST /api/interview/live/evaluate-single
  * @description Grade a single Q&A pair and provide instant coaching
  */
-interviewRouter.post("/live/evaluate-single", authMiddleware.authUser, aiRateLimiter, interviewController.evaluateSingleAnswerController);
+interviewRouter.post("/live/evaluate-single", authMiddleware.authUser, aiRateLimiter, validateEvaluateSingleAnswer, interviewController.evaluateSingleAnswerController);
 
 /**
  * @route POST /api/interview/live/hint
  * @description Get a subtle AI Copilot hint
  */
-interviewRouter.post("/live/hint", authMiddleware.authUser, aiRateLimiter, interviewController.getLiveHintController);
+interviewRouter.post("/live/hint", authMiddleware.authUser, aiRateLimiter, validateLiveHint, interviewController.getLiveHintController);
 
 
 /**
  * @route POST /api/interview/roadmap/dynamic
  */
-interviewRouter.post("/roadmap/dynamic", authMiddleware.authUser, aiRateLimiter, interviewController.generateDynamicRoadmapController);
+interviewRouter.post("/roadmap/dynamic", authMiddleware.authUser, aiRateLimiter, validateDynamicRoadmap, interviewController.generateDynamicRoadmapController);
 
 /**
  * @route GET /api/interview/sessions
@@ -106,7 +117,7 @@ interviewRouter.get("/sessions", authMiddleware.authUser, interviewController.ge
  * @route DELETE /api/interview/report/:interviewId
  * @description Delete an interview report by ID (owner only)
  */
-interviewRouter.delete("/report/:interviewId", authMiddleware.authUser, interviewController.deleteInterviewReportController);
+interviewRouter.delete("/report/:interviewId", authMiddleware.authUser, validateMongoId("interviewId"), interviewController.deleteInterviewReportController);
 
 
 

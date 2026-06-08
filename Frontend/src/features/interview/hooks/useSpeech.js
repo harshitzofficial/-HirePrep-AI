@@ -78,7 +78,7 @@ const useSpeech = () => {
         recognition.onerror = () => setIsListening(false);
         recognition.onend = () => setIsListening(false);
 
-        try { recognition.start(); } catch (e) {}
+        try { recognition.start(); } catch { /* Expected: Chrome throws if already running */ }
     }, []);
 
     const stopListening = () => {

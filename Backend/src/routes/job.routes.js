@@ -1,6 +1,7 @@
 const express = require("express");
 const { authUser } = require("../middlewares/auth.middleware");
 const { searchJobsController } = require("../controllers/job.controller");
+const { validateJobSearch } = require("../middlewares/validate.middleware");
 
 const rateLimit = require("express-rate-limit");
 const { RedisStore } = require("rate-limit-redis");
@@ -11,14 +12,15 @@ const router = express.Router();
 // --- Define the Job API Rate Limiter ---
 const jobRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // Allow 20 searches per 15 minutes per IP
+    max: 10, // Allow 10 searches per 15 minutes per IP
     standardHeaders: true,
     legacyHeaders: false,
     validate: { trustProxy: false, xForwardedForHeader: false, default: false },
-
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
-    }),
+    store: redisClient.isOpen
+        ? new RedisStore({
+            sendCommand: (...args) => redisClient.sendCommand(args),
+        })
+        : new rateLimit.MemoryStore(), // Fallback if Redis is down
     message: { 
         message: "You are searching too fast! Please wait a few minutes before trying again." 
     }
@@ -31,6 +33,6 @@ const jobRateLimiter = rateLimit({
  */
 
 // 🔒 Apply the authentication AND the rate limiter
-router.get("/search", authUser, jobRateLimiter, searchJobsController);
+router.get("/search", authUser, jobRateLimiter, validateJobSearch, searchJobsController);
 
 module.exports = router;
