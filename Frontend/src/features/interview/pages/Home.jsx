@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react'
-import "../style/home.scss"
-import { useInterview } from '../hooks/useInterview.js'
+import "@features/interview/styles/home.scss"
+import { useInterview } from '@features/interview/hooks/useInterview'
 import { useNavigate } from 'react-router'
+import toast from 'react-hot-toast'
 import { useAuth } from '../../auth/hooks/useAuth.js'
 import { deleteInterviewReport } from '../services/interview.api.js'
 
@@ -126,16 +127,18 @@ const Home = () => {
         try {
             await deleteInterviewReport(reportId)
             setReports(prev => prev.filter(r => r._id !== reportId))
-        } catch (err) {
-            console.error("Delete failed:", err)
-            alert("Failed to delete report. Please try again.")
+        } catch (error) {
+            console.error("Delete report error:", error);
+            toast.error("Failed to delete report. Please try again.")
         }
     }
 
-    if (loading) {
+    // Only show full-page loading if we have NO reports loaded yet
+    if (loading && reports.length === 0) {
         return (
-            <main className='loading-screen'>
-                <h1>Loading your interview plan...</h1>
+            <main className='home-page' style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column' }}>
+                <div className="btn-spinner" style={{ width: '40px', height: '40px', borderBottomColor: '#00ff88', marginBottom: '1.5rem', display: 'block' }} />
+                <h2 style={{ color: '#00ff88', fontWeight: '500', margin: 0 }}>Loading your interview plans...</h2>
             </main>
         )
     }

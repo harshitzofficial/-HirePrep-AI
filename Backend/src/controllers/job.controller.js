@@ -10,17 +10,18 @@ async function searchJobsController(req, res) {
             return res.status(400).json({ message: "Location is required." });
         }
 
-        // 1. Get user's latest resume
+        // 1. Get user's latest report
         const latestReport = await interviewReportModel.findOne({ user: req.user.id })
             .sort({ createdAt: -1 })
-            .select("resume");
+            .select("resume title");
 
         if (!latestReport) {
             return res.status(404).json({ message: "Please generate an interview report first so we can analyze your resume." });
         }
 
-        // 2. Generate the search query via AI
-        const searchQuery = await getJobSearchQueryFromResume(latestReport.resume);
+        // 2. Prioritize the specific job title they just trained for!
+        // Fall back to resume analysis only if title is missing.
+        const searchQuery = latestReport.title || await getJobSearchQueryFromResume(latestReport.resume);
 
         // 3. Create a unique cache key based on the query and location
         const cacheKey = `jobs:${searchQuery.replace(/\s+/g, '_').toLowerCase()}:${location.toLowerCase()}`;

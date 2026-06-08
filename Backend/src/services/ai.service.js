@@ -6,7 +6,7 @@ const crypto = require("crypto"); // For generating unique cache keys
 const redisClient = require("../config/redis"); // Make sure you created this file!
   
 const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GENAI_API_KEY,
+  apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY,
 });
 
 const MODEL_NAME = "gemini-2.5-flash-lite";
@@ -188,6 +188,10 @@ const evaluationSchema = z.object({
   )
 });
 
+const resumePdfSchema = z.object({
+  html: z.string().describe("The complete HTML document for the enhanced resume"),
+});
+
 //-------------------------------------------------------------------------------------
 // AI Service Functions
 const generateDynamicRoadmap = async ({ jobDescription, resumeText, days }) => {
@@ -219,21 +223,24 @@ const generateDynamicRoadmap = async ({ jobDescription, resumeText, days }) => {
 };
 async function generateInterviewReport({
   resume,
+  resumeFilePart,
   selfDescription,
   jobDescription,
 }) {
   // 🚨 DEBUG: Check if your PDF text is actually reaching this function
   console.log("📝 RESUME TEXT LENGTH:", resume?.length || 0);
-  if (!resume || resume.length < 10) {
-    console.error("❌ ERROR: Resume text is empty. PDF Parsing failed.");
+  if ((!resume || resume.length < 10) && !resumeFilePart) {
+    console.error("❌ ERROR: Resume text is empty and no file provided.");
+  } else if (resumeFilePart) {
+    console.log("📸 HYBRID FALLBACK: Using Gemini Vision for scanned PDF.");
   }
 
-  const prompt = `
+  const promptText = `
     ACT AS: A Senior Technical Recruiter.
     DATA:
-    - Resume: ${resume}
     - User Bio: ${selfDescription}
     - Target JD: ${jobDescription}
+    ${resume && resume.length > 50 ? `- Resume Text: ${resume}` : '- Resume: (Attached as a PDF document)'}
 
     STRICT TASK:
     1. EXTRACT 'detectedSkills': Look through the Resume and list EVERY technical skill (languages, frameworks, tools).
@@ -248,7 +255,7 @@ async function generateInterviewReport({
     const response = await callAiWithRetry(() => 
       ai.models.generateContent({
         model: MODEL_NAME,
-        contents: prompt,
+        contents: resumeFilePart ? [promptText, resumeFilePart] : promptText,
         config: {
           responseMimeType: "application/json",
           responseSchema: zodToJsonSchema(interviewReportSchema),
@@ -280,7 +287,9 @@ let globalBrowser = null;
 
 // Initialize the browser once
 async function getBrowser() {
-    if (!globalBrowser) {
+    // Also re-launch if the browser process has crashed / disconnected
+    if (!globalBrowser || !globalBrowser.connected) {
+        globalBrowser = null; // Reset stale reference
         console.log("🌐 Launching Puppeteer Browser instance...");
 
         const launchOptions = {
@@ -350,10 +359,6 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
   if (!jsonContent) {
     console.log("🧠 Cache Miss: Calling Gemini AI for Enhanced Resume HTML...");
-
-    const resumePdfSchema = z.object({
-      html: z.string().describe("The complete HTML document for the enhanced resume"),
-    });
 
     const prompt = `You are a dual-expert: (1) a Senior ATS Resume Coach at a top FAANG recruiting firm, and (2) a professional frontend developer who crafts stunning HTML/CSS resumes.
 
@@ -469,23 +474,28 @@ HTML STRUCTURE TO FOLLOW EXACTLY:
 
 Return ONLY a valid JSON object: { "html": "<complete html string here>" }`;
 
-    const response = await callAiWithRetry(() =>
-      ai.models.generateContent({
-        model: MODEL_NAME,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: zodToJsonSchema(resumePdfSchema),
-        },
-      })
-    );
-
-    jsonContent = JSON.parse(response.text);
-
     try {
-      await redisClient.setEx(cacheKey, 86400, JSON.stringify(jsonContent));
-    } catch (err) {
-      console.warn("⚠️ Redis Write Error:", err);
+      const response = await callAiWithRetry(() =>
+        ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: zodToJsonSchema(resumePdfSchema),
+          },
+        })
+      );
+
+      jsonContent = JSON.parse(response.text);
+
+      try {
+        await redisClient.setEx(cacheKey, 86400, JSON.stringify(jsonContent));
+      } catch (err) {
+        console.warn("⚠️ Redis Write Error:", err);
+      }
+    } catch (error) {
+      console.error("Gemini Resume HTML Error:", error);
+      throw error;
     }
   }
 
@@ -513,6 +523,7 @@ const generateLiveQuestions = async ({
     CRITICAL CONTEXT:
     - Target Job: ${jobDescription}
     - Candidate Resume: ${resumeText}
+    - Candidate Self-Description: ${selfDescription || "Not provided"}
     - INTERVIEW ROUND TYPE: ${interviewType || "Technical Interview"} 
     - Specific User Request: ${userCommand || "None"}
 
@@ -633,8 +644,6 @@ const evaluateLiveInterview = async ({ transcript, jobDescription, aiMetrics }) 
     throw error;
   }
 };
-// In ai.service.js
-// In ai.service.js
 async function evaluateSingleAnswer({ question, answer, jobDescription }) {
     console.log("🧠 Evaluating single answer...");
     
@@ -699,10 +708,7 @@ module.exports = {
   evaluateLiveInterview,
   evaluateSingleAnswer,
   generateLiveHint,
-  generateDynamicRoadmap,
-  ai,
-  callAiWithRetry,
-  MODEL_NAME
+  generateDynamicRoadmap
 };
 
 /*

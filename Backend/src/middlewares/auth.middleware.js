@@ -14,13 +14,18 @@ async function authUser(req, res, next) {
 
     try {
         // 2. CHECK REDIS BLACKLIST
-        // Note: The key format must match EXACTLY what you used in logoutUserController
-        const isBlacklisted = await redisClient.get(`blacklist:${token}`);
-
-        if (isBlacklisted) {
-            return res.status(401).json({
-                message: "Session expired. Please log in again." // Better UX message
-            });
+        // If Redis is down, we still want to allow users to authenticate! (Fail Open)
+        try {
+            if (redisClient.isOpen) {
+                const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+                if (isBlacklisted) {
+                    return res.status(401).json({
+                        message: "Session expired. Please log in again." 
+                    });
+                }
+            }
+        } catch (redisError) {
+            console.warn("⚠️ Redis Blacklist Check Failed (Proceeding without it):", redisError.message);
         }
 
         // 3. Verify the JWT

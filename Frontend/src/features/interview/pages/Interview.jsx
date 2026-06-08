@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import '../style/interview.scss'
-import { useInterview } from '../hooks/useInterview.js'
+import '@features/interview/styles/interview.scss'
+import { useInterview } from '@features/interview/hooks/useInterview'
 import { useNavigate, useParams } from 'react-router'
-import { searchLiveJobs, generateDynamicRoadmap } from '../services/interview.api' // 🟢 Imported new API
+import JobSearchSection from '../components/JobSearchSection'
+import FlashcardBank from '../components/FlashcardBank'
+import RoadmapSection from '../components/RoadmapSection'
 
 const NAV_ITEMS = [
     { id: 'technical', label: 'Technical Questions', icon: (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>) },
@@ -40,295 +42,9 @@ const QuestionCard = ({ item, index }) => { /* ... keep your existing code ... *
     )
 }
 
-const RoadMapDay = ({ day }) => { /* ... keep your existing code ... */ 
-    return (
-        <div className='roadmap-day'>
-            <div className='roadmap-day__header'>
-                <span className='roadmap-day__badge'>Day {day.day}</span>
-                <h3 className='roadmap-day__focus'>{day.focus}</h3>
-            </div>
-            <ul className='roadmap-day__tasks'>
-                {day.tasks.map((task, i) => (
-                    <li key={i}>
-                        <span className='roadmap-day__bullet' />
-                        {task}
-                    </li>
-                ))}
-            </ul>
-        </div>
-    )
-}
 
-const JobSearchSection = () => {
-    const [location, setLocation] = useState('');
-    const [jobs, setJobs] = useState([]);
-    const [isSearching, setIsSearching] = useState(false);
-    const [searchedQuery, setSearchedQuery] = useState('');
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        if (!location.trim()) return;
 
-        setIsSearching(true);
-        try {
-            const data = await searchLiveJobs(location);
-            setJobs(data.jobs || []);
-            setSearchedQuery(data.searchQuery);
-        } catch (error) {
-            console.error("Failed to fetch jobs:", error);
-            // Fix #9: show user-friendly error instead of silent failure
-            setSearchedQuery(location);
-            setJobs([]);
-        } finally {
-            setIsSearching(false);
-        }
-    };
-
-    return (
-        <section className="job-search-section" style={{ width: '100%', textAlign: 'left' }}>
-            <div className='content-header' style={{ marginBottom: '0.5rem' }}>
-                <h2>Find Your Next Role</h2>
-                {jobs.length > 0 && <span className='content-header__count'>{jobs.length} matches</span>}
-            </div>
-            
-            <p style={{ color: '#a0a0a0', marginBottom: '1.5rem', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                We'll analyze your uploaded resume and find the best active job listings in your area tailored specifically to your skill set.
-            </p>
-
-            {/* 🟢 This flex row keeps the input and button side-by-side */}
-            <form onSubmit={handleSearch} style={{ display: 'flex', flexDirection: 'row', gap: '1rem', width: '100%', marginBottom: '2rem' }}>
-                <input 
-                    type="text" 
-                    placeholder="Enter city or 'remote' (e.g., New York, NY)" 
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    style={{ 
-                        flex: 1, // Makes the input stretch to fill available space
-                        padding: '0.8rem 1.2rem', 
-                        borderRadius: '8px', 
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        backgroundColor: 'rgba(20, 20, 20, 0.8)', 
-                        color: 'white',
-                        outline: 'none',
-                        fontSize: '1rem'
-                    }}
-                />
-                <button 
-                    type="submit" 
-                    className="button primary-button" 
-                    disabled={isSearching}
-                    style={{ whiteSpace: 'nowrap', padding: '0 1.5rem' }} // Prevents button text from wrapping
-                >
-                    {isSearching ? "Searching..." : "Search Jobs"}
-                </button>
-            </form>
-
-            {searchedQuery && (
-                <div style={{ marginBottom: '1.5rem', padding: '1rem 1.5rem', backgroundColor: 'rgba(0, 255, 136, 0.05)', borderRadius: '8px', border: '1px solid rgba(0, 255, 136, 0.2)' }}>
-                    <p style={{ margin: 0, color: '#00ff88', fontSize: '0.9rem' }}>
-                        🤖 AI searched based on your resume for: <strong>{searchedQuery}</strong>
-                    </p>
-                </div>
-            )}
-
-            {/* Fix #9: empty state so users know the search ran but found nothing */}
-            {jobs.length === 0 && searchedQuery && !isSearching && (
-                <p style={{ color: '#888', textAlign: 'center', padding: '2rem 0', fontSize: '0.95rem' }}>
-                    No jobs found for <strong style={{ color: '#ccc' }}>"{searchedQuery}"</strong> in <strong style={{ color: '#ccc' }}>{location}</strong>.<br />
-                    <span style={{ fontSize: '0.85rem' }}>Try a different city or search term.</span>
-                </p>
-            )}
-
-            <div className='job-list' style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {jobs.map((job, index) => (
-                    <div key={index} className='q-card' style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <div className='q-card__header' style={{ cursor: 'default' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>{job.job_title}</h3>
-                                <span style={{ color: '#00ff88', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                                    {job.employer_name} • {job.job_city}, {job.job_state}
-                                </span>
-                            </div>
-                        </div>
-                        <div className='q-card__body' style={{ marginTop: 0, paddingTop: '0.5rem' }}>
-                            <p style={{ color: '#ccc', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '1rem' }}>
-                                {job.job_description?.substring(0, 200)}...
-                            </p>
-                            <a 
-                                href={job.job_apply_link} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="button"
-                                style={{ 
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
-                                    color: '#fff', 
-                                    textDecoration: 'none',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    padding: '0.6rem 1.2rem',
-                                    borderRadius: '6px',
-                                    fontSize: '0.85rem',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
-                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
-                            >
-                                Apply Externally 
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
-                            </a>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </section>
-    );
-}
-
-// ── Flashcard Bank Component ──────────────────────────────────────────────────
-const FlashcardBank = ({ technicalQuestions = [], behavioralQuestions = [] }) => {
-    const [filter, setFilter] = useState('all');
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [isFlipped, setIsFlipped] = useState(false);
-    const [tiltStyle, setTiltStyle] = useState({
-        transform: `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`,
-        '--glare-x': '50%',
-        '--glare-y': '50%',
-        '--glare-opacity': '0'
-    });
-
-    const allCards = [
-        ...technicalQuestions.map(q => ({ ...q, type: 'Technical' })),
-        ...behavioralQuestions.map(q => ({ ...q, type: 'Behavioral' }))
-    ];
-
-    const filteredCards = filter === 'all' 
-        ? allCards 
-        : allCards.filter(c => c.type.toLowerCase() === filter);
-
-    const currentCard = filteredCards[currentIndex];
-
-    useEffect(() => {
-        setCurrentIndex(0);
-        setIsFlipped(false);
-    }, [filter]);
-
-    const nextCard = () => {
-        if (currentIndex < filteredCards.length - 1) {
-            setIsFlipped(false);
-            setTimeout(() => setCurrentIndex(prev => prev + 1), 150);
-        }
-    };
-
-    const prevCard = () => {
-        if (currentIndex > 0) {
-            setIsFlipped(false);
-            setTimeout(() => setCurrentIndex(prev => prev - 1), 150);
-        }
-    };
-
-    const handleMouseMove = (e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        
-        // Calculate tilt
-        const rotateX = ((y - centerY) / centerY) * -12; // Max 12 deg tilt
-        const rotateY = ((x - centerX) / centerX) * 12;
-
-        // Calculate glare position
-        const glareX = (x / rect.width) * 100;
-        const glareY = (y / rect.height) * 100;
-
-        setTiltStyle({
-            transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
-            '--glare-x': `${glareX}%`,
-            '--glare-y': `${glareY}%`,
-            '--glare-opacity': '1'
-        });
-    };
-
-    const handleMouseLeave = () => {
-        setTiltStyle({
-            transform: `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`,
-            '--glare-x': '50%',
-            '--glare-y': '50%',
-            '--glare-opacity': '0'
-        });
-    };
-
-    if (filteredCards.length === 0) return <div style={{ color: '#fff', textAlign: 'center', padding: '2rem' }}>No cards available.</div>;
-
-    return (
-        <section className="flashcard-section">
-            <div className='content-header flashcard-header'>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <h2>Flashcard Bank</h2>
-                    <span className='content-header__count'>{filteredCards.length} Cards</span>
-                </div>
-                <div className="flashcard-filters">
-                    <button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>All</button>
-                    <button className={filter === 'technical' ? 'active' : ''} onClick={() => setFilter('technical')}>Technical</button>
-                    <button className={filter === 'behavioral' ? 'active' : ''} onClick={() => setFilter('behavioral')}>Behavioral</button>
-                </div>
-            </div>
-
-            <div className="flashcard-container">
-                <div 
-                    className={`flashcard ${isFlipped ? 'flipped' : ''}`} 
-                    onClick={() => setIsFlipped(!isFlipped)}
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                    style={tiltStyle}
-                >
-                    <div className="flashcard__inner">
-                        {/* FRONT OF CARD */}
-                        <div className="flashcard__front">
-                            <span className={`flashcard__badge flashcard__badge--${currentCard.type.toLowerCase()}`}>{currentCard.type}</span>
-                            <div className="flashcard__front-content">
-                                <h3>{currentCard.question}</h3>
-                            </div>
-                            <p className="flashcard__hint">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-                                Click to flip and view the answer
-                            </p>
-                        </div>
-                        
-                        {/* BACK OF CARD */}
-                        <div className="flashcard__back">
-                            <div className="flashcard__back-content">
-                                <div className="flashcard__section">
-                                    <span className='q-card__tag q-card__tag--intention'>Intention</span>
-                                    <p>{currentCard.intention}</p>
-                                </div>
-                                <div className="flashcard__section">
-                                    <span className='q-card__tag q-card__tag--answer'>Model Answer</span>
-                                    <p>{currentCard.answer}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="flashcard-controls">
-                <button className="button" onClick={prevCard} disabled={currentIndex === 0}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                    Previous
-                </button>
-                <span className="flashcard-progress">{currentIndex + 1} / {filteredCards.length}</span>
-                <button className="button primary-button" onClick={nextCard} disabled={currentIndex === filteredCards.length - 1}>
-                    Next
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </button>
-            </div>
-        </section>
-    );
-};
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const Interview = () => {
@@ -339,11 +55,6 @@ const Interview = () => {
 
     // 🟢 SVG Score State
     const [animatedScore, setAnimatedScore] = useState(0);
-
-    // 🟢 NEW: Custom Roadmap States
-    const [customDays, setCustomDays] = useState(7);
-    const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
-    const [activeRoadmap, setActiveRoadmap] = useState([]); // Will hold either default or custom roadmap
 
     // 🟢 NEW: Preview Modal State
     const [previewData, setPreviewData] = useState(null);
@@ -360,36 +71,6 @@ const Interview = () => {
             return () => clearTimeout(timer);
         }
     }, [report?.matchScore]);
-
-    // 🟢 Set the default roadmap when the report first loads
-    useEffect(() => {
-        if (report?.preparationPlan) {
-            setActiveRoadmap(report.preparationPlan);
-        }
-    }, [report?.preparationPlan]);
-
-    // 🟢 NEW: Function to generate custom roadmap
-    const handleGenerateCustomRoadmap = async () => {
-        if (customDays < 1 || customDays > 30) return alert("Please select between 1 and 30 days.");
-        
-        setIsGeneratingRoadmap(true);
-        try {
-            const data = await generateDynamicRoadmap({
-                interviewId,
-                jobDescription: report.jobDescription,
-                // Fix #5: schema field is "resume", not "resumeText" or "resumeContent"
-                resumeText: report.resume || "",
-                days: customDays
-            });
-            // Update the UI with the fresh roadmap!
-            setActiveRoadmap(data.preparationPlan);
-        } catch (error) {
-            console.error(error);
-            alert("Failed to generate custom roadmap. Please check backend.");
-        } finally {
-            setIsGeneratingRoadmap(false);
-        }
-    };
 
     // 🟢 NEW: Handle Preview Click
     const handlePreviewClick = async () => {
@@ -522,44 +203,7 @@ const Interview = () => {
 
                         {/* 🟢 NEW DYNAMIC ROADMAP UI */}
                         {activeNav === 'roadmap' && (
-                            <section>
-                                <div className='content-header' style={{ marginBottom: '1rem' }}>
-                                    <h2>Preparation Road Map</h2>
-                                    <span className='content-header__count'>{activeRoadmap?.length}-day plan</span>
-                                </div>
-                                
-                                {/* Generator Widget */}
-                                <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                                    <div>
-                                        <h3 style={{ fontSize: '1rem', color: '#fff', margin: '0 0 0.5rem 0' }}>Adjust Your Timeline</h3>
-                                        <p style={{ fontSize: '0.85rem', color: '#888', margin: 0 }}>How many days do you have left to prepare?</p>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                        <input 
-                                            type="number" 
-                                            min="1" max="30" 
-                                            value={customDays} 
-                                            // Fix #8: clamp on change so invalid values are corrected immediately
-                                            onChange={(e) => setCustomDays(Math.min(30, Math.max(1, Number(e.target.value) || 1)))}
-                                            style={{ width: '80px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #444', background: '#111', color: '#fff', fontSize: '1rem', outline: 'none', textAlign: 'center' }}
-                                        />
-                                        <span style={{ color: '#aaa', fontSize: '0.9rem' }}>Days</span>
-                                        <button 
-                                            onClick={handleGenerateCustomRoadmap} 
-                                            disabled={isGeneratingRoadmap}
-                                            style={{ padding: '0.6rem 1.2rem', borderRadius: '8px', border: 'none', background: '#00ff88', color: '#000', fontWeight: 'bold', cursor: isGeneratingRoadmap ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isGeneratingRoadmap ? 0.7 : 1 }}
-                                        >
-                                            {isGeneratingRoadmap ? "Recalculating..." : "Regenerate Plan"}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className='roadmap-list'>
-                                    {activeRoadmap?.map((day) => (
-                                        <RoadMapDay key={day.day} day={day} />
-                                    ))}
-                                </div>
-                            </section>
+                            <RoadmapSection report={report} interviewId={interviewId} />
                         )}
 
                         {activeNav === 'jobs' && (

@@ -1,7 +1,6 @@
-const { GoogleGenAI } = require("@google/genai");
 const axios = require("axios");
-
-const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
+// Reuse the shared AI client and retry helper instead of creating a second instance
+const { ai, callAiWithRetry } = require("./ai.service");
 
 async function getJobSearchQueryFromResume(resumeText) {
     try {
@@ -9,13 +8,16 @@ async function getJobSearchQueryFromResume(resumeText) {
         Return ONLY the job title string without any quotes or punctuation. No explanations.
         Resume: ${resumeText}`;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-lite",
-            contents: prompt
-        });
+        // Use callAiWithRetry so 429 quota errors are retried with backoff
+        const response = await callAiWithRetry(() =>
+            ai.models.generateContent({
+                model: "gemini-2.5-flash-lite",
+                contents: prompt
+            })
+        );
 
         // Strip out any accidental quotes the AI might add, and trim whitespace
-        return response.text.replace(/["']/g, "").trim();
+        return response.text.replace(/['"]/g, "").trim();
         
     } catch (error) {
         console.error("AI Keyword Extraction Error:", error);

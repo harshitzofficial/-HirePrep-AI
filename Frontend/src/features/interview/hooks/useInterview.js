@@ -1,7 +1,8 @@
-import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "../services/interview.api"
+import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "@features/interview/services/interview.api"
 import { useContext, useEffect } from "react"
-import { InterviewContext } from "../interview.context"
+import { InterviewContext } from "@features/interview/contexts/interview.context"
 import { useParams } from "react-router"
+import toast from 'react-hot-toast';
 
 export const useInterview = () => {
 
@@ -26,11 +27,11 @@ export const useInterview = () => {
             }
         } catch (error) {
             // 🚨 Catch the Rate Limit Error
-            if (error.response && error.response.status === 429) {
-                alert("⏳ You've hit the AI generation limit! Please wait 15 minutes.");
+            if (error.response?.status === 429) {
+                toast.error("⏳ You've hit the AI generation limit! Please wait 15 minutes.", { duration: 5000 });
             } else {
                 console.error("Failed to generate report:", error)
-                alert("Something went wrong while generating the report. Please try again.");
+                toast.error("Something went wrong while generating the report. Please try again.");
             }
         } finally {
             setLoading(false)
@@ -88,11 +89,11 @@ export const useInterview = () => {
             }
         } catch (error) {
             // 🚨 PDF generation uses Gemini for HTML, so it can also hit the rate limit!
-            if (error.response && error.response.status === 429) {
-                alert("⏳ You've hit the AI generation limit! Please wait 15 minutes before downloading a new AI resume.");
+            if (error.response?.status === 429) {
+                toast.error("⏳ You've hit the AI generation limit! Please wait 15 minutes before downloading a new AI resume.", { duration: 5000 });
             } else {
                 console.error("Failed to generate PDF:", error)
-                alert("Failed to download the resume. Please try again later.");
+                toast.error("Failed to download the resume. Please try again later.");
             }
         } finally {
             setLoading(false)
@@ -127,6 +128,7 @@ export const useInterview = () => {
         } else {
             getReports()
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ interviewId ])
 
     return { loading, report, reports, setReports, generateReport, getReportById, getReports, getResumePdf, previewResumePdf }

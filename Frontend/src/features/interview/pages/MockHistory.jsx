@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { getAllInterviewSessions } from "../services/interview.api";
+import { getAllInterviewSessions } from "@features/interview/services/interview.api";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import "../style/mockHistory.scss";
+import "@features/interview/styles/mockHistory.scss";
 
 const MockHistory = () => {
   const navigate = useNavigate();

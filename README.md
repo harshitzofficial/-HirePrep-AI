@@ -1,1160 +1,1396 @@
-
-<p align="center">
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React 19" />
-  <img src="https://img.shields.io/badge/Node.js-20+-339933?logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white" alt="Express" />
-  <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
-  <img src="https://img.shields.io/badge/Redis-Cache-DC382D?logo=redis&logoColor=white" alt="Redis" />
-  <img src="https://img.shields.io/badge/Google%20Gemini-AI-4285F4?logo=google&logoColor=white" alt="Google Gemini" />
-  <img src="https://img.shields.io/badge/Docker-Container-2496ED?logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/Vite-Build-646CFF?logo=vite&logoColor=white" alt="Vite" />
-</p>
-
+<div align="center">
+   
 # HirePrep AI
+   
+**A full-stack AI-powered technical interview preparation platform**
 
-**An AI-powered career platform that transforms resumes into actionable strategy with live interactive mock interviews, real-time biometric analysis, audio coaching, and dynamic study roadmaps using Google Gemini.**
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-22-green)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18-blue)](https://react.dev/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green)](https://www.mongodb.com/)
+[![Redis](https://img.shields.io/badge/Redis-Cache%20%26%20Rate%20Limit-red)](https://redis.io/)
+[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-blue)](https://ai.google.dev/)
 
-HirePrep AI is a full-stack interview preparation platform designed to help candidates bridge the gap between their current profile and their target job roles. By leveraging Large Language Models (LLMs) and real-time voice synthesis, the platform provides personalized roadmaps, deep resume analysis, and interactive mock interview sessions with biometric feedback.
+</div>
 
 ---
+```mermaid  
+graph TD  
+    subgraph "User Browser"  
+        UI["React SPA (Vite)"]  
+        CAM["Webcam / Microphone"]  
+        FACEAPI["face-api.js (TensorFlow.js)"]  
+        STT["Web Speech API (STT/TTS)"]  
+        CAM --> FACEAPI  
+        CAM --> STT  
+        FACEAPI --> UI  
+        STT --> UI  
+    end  
+  
+    subgraph "Frontend State (React Context)"  
+        AP["AuthProvider"]  
+        IP["InterviewProvider"]  
+        UI --> AP  
+        UI --> IP  
+    end  
+  
+    subgraph "Backend (Express.js)"  
+        SERVER["server.js"]  
+        APP["app.js (Middleware Stack)"]  
+        SERVER --> APP  
+  
+        subgraph "Middleware"  
+            HELMET["helmet (Security Headers)"]  
+            CORS["Manual CORS"]  
+            COOKIE["cookieParser"]  
+            AUTH_MW["authUser (JWT + Redis Blacklist)"]  
+        end  
+  
+        subgraph "Route Namespaces"  
+            R_AUTH["/api/auth"]  
+            R_INTERVIEW["/api/interview"]  
+            R_JOBS["/api/jobs"]  
+        end  
+  
+        subgraph "Controllers"  
+            C_AUTH["auth.controller.js"]  
+            C_INTERVIEW["interview.controller.js"]  
+            C_JOBS["jobs.controller.js"]  
+        end  
+  
+        subgraph "Services"  
+            S_AUTH["auth.service.js"]  
+            S_INTERVIEW["interview.service.js"]  
+            S_AI["ai.service.js"]  
+        end  
+  
+        APP --> HELMET  
+        APP --> CORS  
+        APP --> COOKIE  
+        APP --> AUTH_MW  
+        APP --> R_AUTH  
+        APP --> R_INTERVIEW  
+        APP --> R_JOBS  
+        R_AUTH --> C_AUTH  
+        R_INTERVIEW --> C_INTERVIEW  
+        R_JOBS --> C_JOBS  
+        C_AUTH --> S_AUTH  
+        C_INTERVIEW --> S_INTERVIEW  
+        S_INTERVIEW --> S_AI  
+    end  
+  
+    subgraph "AI & PDF Layer"  
+        GEMINI["Google Gemini API (gemini-2.5-flash-lite)"]  
+        PUPPETEER["Puppeteer (Headless Chromium)"]  
+        ZOD["Zod Schema Validation"]  
+        S_AI --> GEMINI  
+        S_AI --> PUPPETEER  
+        GEMINI --> ZOD  
+    end  
+  
+    subgraph "External APIs"  
+        JSEARCH["JSearch (RapidAPI) — Job Listings"]  
+        C_JOBS --> JSEARCH  
+    end  
+  
+    subgraph "Persistence & Cache"  
+        MONGO[("MongoDB Atlas")]  
+        REDIS[("Redis Cloud")]  
+    end  
+  
+    subgraph "Data Models (Mongoose)"  
+        M_USER["user.model.js"]  
+        M_REPORT["interviewReport.model.js"]  
+        M_SESSION["interviewSession.model.js"]  
+    end  
+  
+    UI -- "REST (Axios + withCredentials)" --> APP  
+    S_AUTH --> MONGO  
+    S_INTERVIEW --> MONGO  
+    AUTH_MW --> REDIS  
+    S_AI --> REDIS  
+    MONGO --> M_USER  
+    MONGO --> M_REPORT  
+    MONGO --> M_SESSION
+```
 
 ## Table of Contents
 
-- [Core Features](#core-features)
-- [Tech Stack](#tech-stack)
-- [Monorepo Structure](#monorepo-structure)
-- [Architecture Overview](#architecture-overview)
-  - [High-Level Component Interaction](#high-level-component-interaction)
-  - [Main User Journey](#main-user-journey)
-  - [Entity Mapping: Features to Code](#entity-mapping-features-to-code)
-- [Getting Started & Environment Setup](#getting-started--environment-setup)
-  - [Prerequisites](#prerequisites)
-  - [Repository Setup](#repository-setup)
-  - [Environment Configuration](#environment-configuration)
-  - [Running Locally](#running-locally)
-  - [Docker Compose Setup](#docker-compose-setup)
-- [Deployment & Containerization](#deployment--containerization)
-  - [Backend Containerization (Docker)](#backend-containerization-docker)
-  - [Service Topology (Docker Compose)](#service-topology-docker-compose)
-  - [Frontend Deployment (Vercel)](#frontend-deployment-vercel)
-  - [Deployment Checklist](#deployment-checklist)
-- [Backend Architecture](#backend-architecture)
-  - [Server Bootstrap & Middleware](#server-bootstrap--middleware)
-  - [Express Middleware Stack](#express-middleware-stack)
-  - [Routing Domains](#routing-domains)
-- [Data Models & Database](#data-models--database)
-  - [User Model](#user-model)
-  - [InterviewReport Model](#interviewreport-model)
-  - [InterviewSession Model](#interviewsession-model)
-  - [Indexing & Performance](#indexing--performance)
-- [Authentication System](#authentication-system)
-  - [Registration & Identity Management](#registration--identity-management)
-  - [Login & Session Issuance](#login--session-issuance)
-  - [The authUser Middleware](#the-authuser-middleware)
-  - [Logout & Redis Blacklisting](#logout--redis-blacklisting)
-  - [Security Middleware](#security-middleware)
-- [Interview & Job API Routes](#interview--job-api-routes)
-  - [Interview API](#interview-api-apiinterview)
-  - [Job API](#job-api-apijobs)
-  - [Rate Limiter Configuration](#rate-limiter-configuration)
-- [AI Service Layer](#ai-service-layer)
-  - [Resume Analysis & Report Generation](#resume-analysis--report-generation)
-  - [Live Interview AI Features](#live-interview-ai-features)
-  - [PDF Resume Generation Pipeline](#pdf-resume-generation-pipeline)
-  - [Job Search Service](#job-search-service)
-  - [Dynamic Roadmap Generation](#dynamic-roadmap-generation)
-- [Frontend Architecture](#frontend-architecture)
-  - [Routing & Application Shell](#routing--application-shell)
-  - [Authentication Feature (Frontend)](#authentication-feature-frontend)
-  - [Interview Feature — Pages & State](#interview-feature--pages--state)
-  - [Live Interview Engine (Frontend)](#live-interview-engine-frontend)
-  - [Face Analysis & ML Models](#face-analysis--ml-models)
-  - [Styling System](#styling-system)
-- [Caching, Rate Limiting & Security](#caching-rate-limiting--security)
-  - [Redis Infrastructure](#redis-infrastructure)
-  - [JWT Authentication & Token Lifecycle](#jwt-authentication--token-lifecycle)
-  - [CORS & Network Security](#cors--network-security)
-- [Glossary](#glossary)
+1. [Project Overview](#1-project-overview)
+2. [Core Capabilities](#2-core-capabilities)
+3. [High-Level Architecture](#3-high-level-architecture)
+   - [System Component Map](#31-system-component-map)
+   - [Conceptual Data Flow](#32-conceptual-data-flow)
+   - [Request Lifecycle](#33-request-lifecycle)
+4. [Backend — Express API](#4-backend--express-api)
+   - [Startup Sequence](#41-startup-sequence)
+   - [Middleware Stack](#42-middleware-stack)
+   - [Route Namespaces](#43-route-namespaces)
+   - [Controller-Service Pattern](#44-controller-service-pattern)
+5. [Authentication System](#5-authentication-system)
+   - [JWT Cookie Strategy](#51-jwt-cookie-strategy)
+   - [Token Blacklisting (Redis)](#52-token-blacklisting-redis)
+   - [Rate Limiting](#53-rate-limiting)
+   - [Auth Middleware Flow](#54-auth-middleware-flow)
+6. [Interview API](#6-interview-api)
+   - [API Endpoints](#61-api-endpoints)
+   - [File Handling & PDF Parsing](#62-file-handling--pdf-parsing)
+   - [Caching Strategy](#63-caching-strategy)
+   - [Controller-to-Service Mapping](#64-controller-to-service-mapping)
+7. [AI Service — Google Gemini Integration](#7-ai-service--google-gemini-integration)
+   - [Schema Enforcement (Zod)](#71-schema-enforcement-zod)
+   - [Exported AI Functions](#72-exported-ai-functions)
+   - [Exponential Backoff & Retry](#73-exponential-backoff--retry)
+   - [Resume PDF Generation Pipeline](#74-resume-pdf-generation-pipeline)
+8. [Job Search API](#8-job-search-api)
+   - [Data Flow](#81-data-flow)
+   - [Implementation Details](#82-implementation-details)
+   - [API Reference](#83-api-reference)
+9. [Data Models](#9-data-models)
+   - [Entity Relationship Diagram](#91-entity-relationship-diagram)
+   - [User Model](#92-user-model)
+   - [InterviewReport Model](#93-interviewreport-model)
+   - [InterviewSession Model](#94-interviewsession-model)
+10. [Middleware & Validation](#10-middleware--validation)
+    - [Validator Definitions](#101-validator-definitions)
+    - [File Upload Middleware](#102-file-upload-middleware)
+    - [Error Handling Architecture](#103-error-handling-architecture)
+11. [Frontend — React Application](#11-frontend--react-application)
+    - [Provider Hierarchy](#111-provider-hierarchy)
+    - [Feature-Based Structure & Path Aliases](#112-feature-based-structure--path-aliases)
+    - [Axios API Utility](#113-axios-api-utility)
+12. [Routing & Navigation](#12-routing--navigation)
+    - [Route Configuration](#121-route-configuration)
+    - [Protected Route Guard](#122-protected-route-guard)
+    - [Lazy Loading & Error Boundaries](#123-lazy-loading--error-boundaries)
+13. [Authentication Feature (Frontend)](#13-authentication-feature-frontend)
+    - [AuthContext & useAuth Hook](#131-authcontext--useauth-hook)
+    - [Service Layer](#132-service-layer)
+14. [Interview Preparation Feature](#14-interview-preparation-feature)
+    - [InterviewContext & useInterview Hook](#141-interviewcontext-useinterview-hook)
+    - [Interview Report Dashboard](#142-interview-report-dashboard)
+    - [Live Interview Session](#143-live-interview-session)
+    - [Mock History](#144-mock-history)
+15. [Face Analysis & Biometric Subsystem](#15-face-analysis--biometric-subsystem)
+    - [Bundled ML Models](#151-bundled-ml-models)
+    - [useFaceAnalysis Hook](#152-usefaceanalysis-hook)
+    - [Biometric Scoring Weights](#153-biometric-scoring-weights)
+    - [Data Flow: Pixels to Metrics](#154-data-flow-pixels-to-metrics)
+16. [Infrastructure & Deployment](#16-infrastructure--deployment)
+    - [Deployment Architecture](#161-deployment-architecture)
+    - [Docker Configuration](#162-docker-configuration)
+    - [Redis — Caching & Rate Limiting](#163-redis--caching--rate-limiting)
+    - [Frontend Build & Tooling](#164-frontend-build--tooling)
+17. [Getting Started — Setup & Configuration](#17-getting-started--setup--configuration)
+    - [Environment Variables](#171-environment-variables)
+    - [Backend Setup](#172-backend-setup)
+    - [Frontend Setup](#173-frontend-setup)
+    - [Docker Compose](#174-docker-compose)
+18. [Glossary](#18-glossary)
 
 ---
 
-## Core Features
+## 1. Project Overview
 
-- **Deep Resume Analysis** — Maps career history to job requirements to identify strong suits and skill gaps.
-- **AI Job Matcher** — Cross-references user profiles with live job boards via external APIs (JSearch / RapidAPI).
-- **Live Voice Interviews** — Real-time, voice-enabled mock interviews with instant conversational feedback using the Web Speech API.
-- **Biometric Feedback** — Real-time analysis of eye contact and facial expressions during interviews using `face-api.js` (TensorFlow.js).
-- **Instant Roadmaps** — Generates day-by-day preparation plans using Google Gemini, customizable to any duration.
-- **ATS-Optimized Resumes** — Generates tailored PDF resumes rewritten specifically for target roles via Puppeteer rendering.
-- **Real-time Coaching** — Per-answer feedback during live interview sessions with an AI "interview coach."
-- **AI Copilot (Hints)** — Real-time strategic hints during live interviews without giving away the full answer.
+HirePrep AI is a comprehensive full-stack platform designed to automate and enhance technical interview preparation. It leverages **Google Gemini AI** to provide personalized interview reports, real-time mock interview simulations with biometric feedback, and automated resume analysis.
 
----
-
-## Tech Stack
-
-| Layer | Technology | Key Code Entities |
-| :--- | :--- | :--- |
-| **Frontend** | React 19, Vite, SCSS | `AuthProvider`, `InterviewProvider`, `useSpeech`, `useFaceAnalysis` |
-| **Backend** | Node.js, Express | `server.js`, `app.js`, `interview.controller.js` |
-| **Database** | MongoDB (Mongoose ODM) | `User`, `InterviewReport`, `InterviewSession` |
-| **Caching** | Redis | `redis.js`, `rateLimiter`, `RedisStore` |
-| **AI / ML** | Google Gemini (`gemini-2.5-flash-lite`), face-api.js | `ai.service.js`, `useFaceAnalysis.js` |
-| **PDF Generation** | Puppeteer | `globalBrowser`, `renderHtmlToPdf` |
-| **File Uploads** | Multer (in-memory) | `file.middleware.js` |
-| **Containerization** | Docker, Docker Compose | `Dockerfile`, `docker-compose.yml` |
-| **Frontend Hosting** | Vercel | `vercel.json` |
+The system is built with a decoupled architecture:
+- **Frontend**: React Single Page Application (SPA) powered by Vite
+- **Backend**: Node.js/Express REST API
+- **Database**: MongoDB (via Mongoose) for persistence
+- **Cache**: Redis for caching, rate limiting, and JWT blacklisting
 
 ---
 
-## Monorepo Structure
+## 2. Core Capabilities
+
+HirePrep AI provides three primary functional domains:
+
+| Domain | Description |
+|:---|:---|
+| **Preparation Engine** | Analyzes user resumes to generate tailored technical and behavioral questions, flashcards, and a customized learning roadmap. |
+| **Live Mock Interview** | A real-time simulation environment featuring AI-driven question delivery, speech-to-text processing, and computer-vision based biometric analysis (eye contact and emotion detection). |
+| **Career Insights** | Extracts keywords from resumes to fetch live job listings via external APIs and provides automated resume-to-job matching scores. |
+
+---
+
+## 3. High-Level Architecture
+
+### 3.1 System Component Map
 
 ```
-HirePrep-AI/
-├── Backend/
-│   ├── server.js                    # Entry point — bootstrap sequence
-│   ├── Dockerfile                   # Production container with Chromium
-│   ├── docker-compose.yml           # Backend + Redis sidecar
-│   ├── package.json
-│   └── src/
-│       ├── app.js                   # Express app, middleware pipeline
-│       ├── config/
-│       │   ├── database.js          # MongoDB connection (Mongoose)
-│       │   └── redis.js             # Redis client with reconnect strategy
-│       ├── controllers/
-│       │   ├── auth.controller.js   # Register, login, logout, session
-│       │   ├── interview.controller.js  # Report generation, live Q&A, roadmap
-│       │   └── job.controller.js    # Job search orchestration
-│       ├── middlewares/
-│       │   ├── auth.middleware.js    # JWT verification + Redis blacklist
-│       │   └── file.middleware.js   # Multer PDF upload (5 MB limit)
-│       ├── models/
-│       │   ├── user.model.js        # User schema (username, email, password)
-│       │   ├── interviewReport.model.js  # Report with nested sub-schemas
-│       │   └── interviewSession.model.js # Live session transcript + biometrics
-│       ├── routes/
-│       │   ├── auth.routes.js       # /api/auth — rate-limited
-│       │   ├── interview.routes.js  # /api/interview — AI rate-limited
-│       │   └── job.routes.js        # /api/jobs — authenticated
-│       └── services/
-│           ├── ai.service.js        # Gemini integration, Zod schemas, caching
-│           └── job.service.js       # JSearch RapidAPI integration
-├── Frontend/
-│   ├── index.html
-│   ├── vercel.json                  # Vercel deployment config
-│   ├── vite.config.js
-│   ├── package.json
-│   ├── public/
-│   │   └── models/                  # face-api.js TensorFlow.js model weights
-│   └── src/
-│       ├── main.jsx                 # React entry point
-│       ├── App.jsx                  # Provider tree (Auth → Interview → Router)
-│       ├── app.routes.jsx           # Route definitions + ProtectedRoute
-│       ├── style.scss               # Global glassmorphism design system
-│       ├── style/
-│       │   └── button.scss          # Global button styles
-│       └── features/
-│           ├── auth/
-│           │   ├── auth.context.jsx     # Authentication state management
-│           │   ├── auth.form.scss       # Auth form styles
-│           │   ├── components/
-│           │   │   └── Protected.jsx    # Route protection wrapper (HOC)
-│           │   ├── hooks/
-│           │   │   └── useAuth.js       # Auth hook (login, register, logout)
-│           │   ├── pages/               # Login.jsx, Register.jsx
-│           │   └── services/auth.api.js # Auth API client (Axios)
-│           ├── interview/
-│           │   ├── interview.context.jsx    # Interview state management
-│           │   ├── hooks/
-│           │   │   ├── useInterview.js      # Report generation & retrieval
-│           │   │   ├── useSpeech.js         # Web Speech API (TTS + STT)
-│           │   │   └── useFaceAnalysis.js   # face-api.js biometric analysis
-│           │   ├── pages/
-│           │   │   ├── Home.jsx             # Dashboard — upload resume + JD
-│           │   │   ├── Interview.jsx        # Report detail — tabs view
-│           │   │   ├── LiveInterview.jsx    # Voice-enabled mock interview
-│           │   │   └── MockHistory.jsx      # Past session analytics
-│           │   ├── services/interview.api.js # Interview API client (Axios)
-│           │   └── style/                   # SCSS modules
-│           └── public/
-│               ├── pages/Landing.jsx   # Public landing page
-│               └── style/landing.scss  # Landing page styles
-└── README.md
+┌─────────────────────────────────────────────────────────────────┐
+│                    Frontend (React SPA)                         │
+│  AuthProvider → InterviewProvider → useFaceAnalysis (face-api)  │
+│                                   → useSpeech (STT/TTS)         │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ REST API (Axios)
+┌──────────────────────────▼──────────────────────────────────────┐
+│                   Backend (Express API)                         │
+│  server.js → auth.routes.js                                     │
+│           → interview.routes.js → ai.service.js (Google Gemini) │
+│                                 → pdf.service.js (Puppeteer)    │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+        ┌──────────────────┴──────────────────┐
+        │                                     │
+┌───────▼────────┐                  ┌─────────▼──────────┐
+│  MongoDB Atlas │                  │  Redis             │
+│  (Mongoose)    │                  │  (Cache/Rate-Limit)│
+└────────────────┘                  └────────────────────┘
 ```
 
----
-
-## Architecture Overview
-
-### High-Level Component Interaction
+### 3.2 Conceptual Data Flow
 
 ```mermaid
 graph TD
-    subgraph "Frontend (React 19 SPA)"
-        A["main.jsx"] --> B["App.jsx"]
-        B --> C["AuthProvider"]
-        B --> D["InterviewProvider"]
-        D --> E["useSpeech (TTS/STT)"]
-        D --> F["useFaceAnalysis (ML)"]
+    subgraph "Frontend (Client-Side)"
+        UI["React SPA"] -- "User Input / Biometrics" --> IP["InterviewProvider"]
+        UI -- "Auth Actions" --> AP["AuthProvider"]
+        IP -- "REST Requests" --> AX["Axios Instance"]
     end
 
-    subgraph "Backend (Node.js/Express)"
-        G["server.js"] --> H["app.js"]
-        H --> I["auth.middleware.js"]
-        H --> J["ai.service.js (Gemini)"]
-        H --> K["job.service.js (RapidAPI)"]
+    subgraph "Backend (Server-Side)"
+        AX -- "HTTP/JSON" --> EA["Express App"]
+        EA -- "Middleware" --> AM["Auth Middleware"]
+        AM -- "Verify JWT / Blacklist" --> RC["Redis Client"]
+        EA -- "Controllers" --> IS["Interview Service"]
+        IS -- "Prompts / Schema" --> AI["AI Service"]
+        IS -- "Persistence" --> MM["Mongoose Models"]
     end
 
-    subgraph "Infrastructure"
-        L[("MongoDB (Mongoose)")]
-        M[("Redis (Caching/RL)")]
-        N["Puppeteer (Chromium)"]
+    subgraph "External Services"
+        AI -- "RPC" --> GG["Google Gemini API"]
+        IS -- "Job Search" --> JS["JSearch RapidAPI"]
     end
 
-    J --> M
-    I --> M
-    H --> L
-    J --> N
-    C -- "JWT/Cookie" --> I
-    D -- "API Requests" --> H
+    MM -- "Read/Write" --> MDB["MongoDB Atlas"]
 ```
 
-### Main User Journey
-
-1. **Upload & Target** — The user provides a resume (PDF) and a target Job Description.
-2. **Action Plan** — The system generates a match score, skill gap analysis, and a tailored Q&A roadmap.
-3. **Resume Export** — Users can download an AI-optimized resume PDF generated via Puppeteer.
-4. **Live Practice** — Engagement in a voice-enabled interview session with real-time biometric feedback.
+### 3.3 Request Lifecycle
 
 ```mermaid
 sequenceDiagram
-    participant U as "User (Frontend)"
-    participant C as "InterviewController"
-    participant G as "GeminiService"
-    participant P as "PuppeteerService"
+    participant Client as "React SPA"
+    participant App as "app.js"
+    participant Middleware as "authUser (auth.middleware.js)"
+    participant Redis as "redisClient"
+    participant Controller as "interview.controller.js"
+    participant Service as "ai.service.js"
 
-    U->>C: POST /api/interview/ (Resume + JD)
-    C->>G: generateInterviewReport()
-    G-->>C: Zod Schema (matchScore, skillGaps)
-    C-->>U: Display Dashboard
-
-    U->>C: POST /api/interview/resume/pdf/:id
-    C->>G: generateResumeHtml()
-    C->>P: renderPdf(html)
-    P-->>U: Download PDF
-
-    U->>C: POST /api/interview/live/questions
-    C->>G: generateLiveQuestions()
-    G-->>U: Audio/Text Questions
-```
-
-### Entity Mapping: Features to Code
-
-```mermaid
-graph LR
-    subgraph "Conceptual Feature"
-        F1["Resume Analysis"]
-        F2["Live Coaching"]
-        F3["Job Matching"]
-        F4["PDF Generation"]
-    end
-
-    subgraph "Code Entity Space"
-        E1["generateInterviewReport()"]
-        E2["evaluateSingleAnswer()"]
-        E3["fetchLiveJobs()"]
-        E4["globalBrowser (Puppeteer)"]
-    end
-
-    subgraph "Implementation File"
-        I1["ai.service.js"]
-        I2["interview.controller.js"]
-        I3["job.service.js"]
-        I4["interview.routes.js"]
-    end
-
-    F1 --> E1 --> I1
-    F2 --> E2 --> I2
-    F3 --> E3 --> I3
-    F4 --> E4 --> I1
-    I2 --> I4
+    Client->>App: POST /api/interview/generate-report
+    App->>Middleware: Intercept Request
+    Middleware->>Redis: get("blacklist:<token>")
+    Redis-->>Middleware: null (Not Blacklisted)
+    Middleware->>App: next()
+    App->>Controller: handleGenerateReport()
+    Controller->>Service: generateInterviewReport()
+    Service-->>Controller: JSON (Zod Validated)
+    Controller-->>Client: 200 OK (Report Data)
 ```
 
 ---
 
-## Getting Started & Environment Setup
+## 4. Backend — Express API
 
-### Prerequisites
+### 4.1 Startup Sequence
 
-- **Node.js** — Version 20 or higher
-- **MongoDB** — A local instance or a MongoDB Atlas connection string
-- **Redis** — Required for rate limiting, JWT blacklisting, and AI response caching
-- **Google Gemini API Key** — For AI generation features
-- **RapidAPI Key** — For the JSearch job search integration
-- **Docker & Docker Compose** — (Optional) For containerized execution
-
-### Repository Setup
-
-```bash
-git clone https://github.com/harshitzofficial/-HirePrep-AI.git
-cd -HirePrep-AI
-
-# Install Backend dependencies
-cd Backend
-npm install
-
-# Install Frontend dependencies
-cd ../Frontend
-npm install
-```
-
-### Environment Configuration
-
-#### Backend `.env`
-
-Create `Backend/.env` with the following variables:
-
-```env
-PORT=3000
-MONGO_URI=your_mongodb_connection_string
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your_super_secret_key
-GOOGLE_GENAI_API_KEY=your_google_gemini_api_key
-RAPIDAPI_KEY=your_jsearch_rapidapi_key
-FRONTEND_URL=http://localhost:5173
-NODE_ENV=development
-```
-
-| Variable | Description |
-| :--- | :--- |
-| `MONGO_URI` | MongoDB connection string for storing users and interview reports. |
-| `REDIS_URL` | Redis connection URL (e.g., `redis://localhost:6379`). |
-| `GOOGLE_GENAI_API_KEY` | API key for Google Gemini (`gemini-2.5-flash-lite`). |
-| `RAPIDAPI_KEY` | Key for JSearch API via RapidAPI. |
-| `JWT_SECRET` | Secret string used for signing authentication tokens. |
-| `FRONTEND_URL` | The URL of the running frontend (e.g., `http://localhost:5173`). |
-| `PORT` | Port for the backend server (defaults to `3000`). |
-
-#### Frontend `.env`
-
-Create `Frontend/.env`:
-
-| Variable | Description |
-| :--- | :--- |
-| `VITE_API_URL` | The base URL of the backend server (e.g., `http://localhost:3000`). |
-
-### Running Locally
-
-#### Starting the Backend
-
-```bash
-cd Backend
-npm run dev
-```
-
-The server initializes:
-1. Connects to **MongoDB** via `mongoose`.
-2. Initializes the `redisClient` with a reconnect strategy.
-3. Starts the Express application on the defined `PORT`.
-
-#### Starting the Frontend
-
-```bash
-cd Frontend
-npm run dev
-```
-
-The application will be available at `http://localhost:5173`.
-
-#### Local Development Architecture
+The server initialization in `server.js` follows a strict order to ensure all dependencies are ready before accepting traffic:
 
 ```mermaid
 graph TD
-    subgraph "Client Space (Vite)"
-        UI["React SPA"]
-        API_CLIENT["axios instance (interview.api.js)"]
+    subgraph "Initialization Layer"
+        START["server.js: startServer()"] --> DOT["dotenv.config()"]
+        DOT --> DB["database.js: connectToDB()"]
+        DB --> REDIS["redis.js: redisClient.connect()"]
     end
 
-    subgraph "Server Space (Node.js)"
-        EXPRESS["Express Server (server.js)"]
-        AUTH_MW["JWT Middleware"]
-        INT_CTRL["Interview Controller"]
-        REDIS_CLIENT["Redis Client (redis.js)"]
+    subgraph "Express Application Layer"
+        REDIS --> APP_REQ["require('./src/app')"]
+        APP_REQ --> MW["Middleware Stack"]
+        MW --> ROUTES["Route Mounting"]
     end
 
-    subgraph "External Infrastructure"
-        MONGO_DB[("MongoDB (User/Report Schemas)")]
-        REDIS_DB[("Redis (Rate Limits/Cache)")]
-        GEMINI_AI["Google Gemini API"]
+    subgraph "Network Layer"
+        ROUTES --> LISTEN["app.listen(PORT)"]
     end
-
-    UI --> API_CLIENT
-    API_CLIENT -- "VITE_API_URL" --> EXPRESS
-    EXPRESS --> AUTH_MW
-    AUTH_MW --> REDIS_CLIENT
-    EXPRESS --> INT_CTRL
-    INT_CTRL --> MONGO_DB
-    INT_CTRL --> REDIS_CLIENT
-    INT_CTRL --> GEMINI_AI
-    REDIS_CLIENT --> REDIS_DB
 ```
 
-### Docker Compose Setup
+1. **Environment Configuration** — loads variables via `dotenv`
+2. **Database Connection** — establishes MongoDB connection; exits with code 1 on failure
+3. **Cache Connection** — attempts Redis; logs warning and continues with in-memory fallback on failure
+4. **App Initialization** — Express `app` is required *after* connections so middleware can access the Redis client
+5. **Listener** — server starts on configured `PORT` (default: 3000)
 
-```bash
-cd Backend
-docker-compose up --build
-```
+### 4.2 Middleware Stack
 
-| Service | Image | Responsibility |
-| :--- | :--- | :--- |
-| `backend` | Custom (via `Dockerfile`) | Express API, Puppeteer Rendering, AI Orchestration |
-| `redis` | `redis:alpine` | Caching, Rate Limiting, Session Blacklist |
+| Middleware | Purpose |
+|:---|:---|
+| `helmet` | Security headers (XSS, Clickjacking, MIME sniffing protection) |
+| Manual CORS | Ensures `Access-Control-Allow-Credentials` and origin matching |
+| `express.json` | Parses incoming JSON payloads |
+| `cookieParser` | Parses cookies for JWT-based authentication |
+| `errorHandler` | Global catch-all for application errors |
 
----
+### 4.3 Route Namespaces
 
-## Deployment & Containerization
+| Namespace | Description |
+|:---|:---|
+| `POST /api/auth` | User lifecycle: registration, login, logout |
+| `POST /api/interview` | Core engine: report generation, live questions, AI evaluations |
+| `GET /api/jobs` | AI-driven job searching via external APIs |
 
-### Backend Containerization (Docker)
-
-| Layer Category | Implementation Detail | Purpose |
-| :--- | :--- | :--- |
-| **Base Image** | `node:22-alpine` | Lightweight Node.js environment. |
-| **System Deps** | `chromium`, `nss`, `freetype`, `harfbuzz`, `ttf-freefont` | Required for Puppeteer to render HTML to PDF. |
-| **Puppeteer Config** | `PUPPETEER_SKIP_DOWNLOAD=true` | Prevents downloading bundled Chrome to save space. |
-| **Binary Path** | `PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser` | Points Puppeteer to the Alpine-installed Chromium. |
-| **Security** | `USER node` | Switches from root to a low-privileged user. |
-| **Optimization** | `npm ci --omit=dev` | Installs only production dependencies. |
-
-### Service Topology (Docker Compose)
-
-```mermaid
-graph TD
-    subgraph "Docker Network"
-        BE["Backend Service"] -- "REDIS_URL=redis://redis:6379" --> RD["Redis Sidecar"]
-        BE -- "shm_size: 1gb" --> SHM["Shared Memory"]
-    end
-
-    CL["Client/Frontend"] -- "HTTP :3000" --> BE
-    BE -- "External API" --> GEM["Google Gemini"]
-    BE -- "External API" --> MDB["MongoDB Atlas"]
-```
-
-**Key Configuration:**
-- **Shared Memory (`shm_size`)**: Set to `1gb` — critical for Chromium, which uses `/dev/shm` for memory sharing; the default Docker limit (64MB) often causes Puppeteer to crash.
-- **Volume Mapping**: Local directory mapped to `/usr/src/app` for hot-reloading; `node_modules` preserved in a named volume.
-- **Environment Integration**: The `env_file` directive pulls sensitive keys into the container.
-
-### Frontend Deployment (Vercel)
-
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
-- **Environment**: Must set `VITE_API_URL` to point to the deployed backend URL.
-
-```mermaid
-graph LR
-    subgraph "Vercel Platform"
-        FE["Frontend SPA (dist)"]
-    end
-
-    subgraph "Container Host (Docker)"
-        subgraph "Backend Container"
-            SVR["server.js (Node.js)"]
-            PUP["Puppeteer + Chromium"]
-        end
-        subgraph "Redis Container"
-            RDS["redis:alpine"]
-        end
-    end
-
-    FE -- "HTTPS Requests (VITE_API_URL)" --> SVR
-    SVR -- "TCP 6379 (REDIS_URL)" --> RDS
-    SVR -- "Internal Call" --> PUP
-```
-
-### Deployment Checklist
-
-| Component | Platform | Key Requirement |
-| :--- | :--- | :--- |
-| **Backend** | Docker / VPS | Must support `shm_size` configuration for Puppeteer. |
-| **Redis** | Docker / Managed | Required for rate limiting and AI response caching. |
-| **Frontend** | Vercel / Netlify | Must set `VITE_API_URL` to the Backend endpoint. |
-| **Database** | MongoDB Atlas | Accessible via `MONGO_URI` from the Backend container. |
-
-#### Environment Differences
-
-| Variable | Local Development | Production (Docker/Vercel) |
-| :--- | :--- | :--- |
-| `REDIS_URL` | `redis://localhost:6379` | `redis://redis:6379` (Docker internal) |
-| `NODE_ENV` | `development` | `production` |
-| `PUPPETEER_EXECUTABLE_PATH` | Not required (uses local) | `/usr/bin/chromium-browser` |
-| `VITE_API_URL` | `http://localhost:3000` | Deployed Backend URL |
-
----
-
-## Backend Architecture
-
-### Server Bootstrap & Middleware
-
-The server initialization follows a strict "Infrastructure-First" boot sequence defined in `server.js`:
+### 4.4 Controller-Service Pattern
 
 ```mermaid
 sequenceDiagram
-    participant OS as "Process (server.js)"
-    participant DB as "MongoDB (Mongoose)"
-    participant RD as "Redis Client"
-    participant APP as "Express App (app.js)"
+    participant Client as "Client (React/Axios)"
+    participant Router as "app.use('/api/interview')"
+    participant Controller as "interview.controller.js"
+    participant Service as "ai.service.js"
+    participant AI as "Google Gemini API"
 
-    OS->>OS: Load .env
-    OS->>DB: connectToDB()
-    DB-->>OS: Connection Success
-    OS->>RD: redisClient.connect()
-    alt Redis Online
-        RD-->>OS: Connected
-    else Redis Offline
-        RD-->>OS: Connection Error (Caught)
-    end
-    Note over OS, APP: Deferred Require
-    OS->>APP: require("./src/app")
-    APP->>APP: Initialize Middlewares & Routes
-    OS->>OS: app.listen(PORT)
+    Client->>Router: POST /generate-report
+    Router->>Router: validateGenerateReport (Middleware)
+    Router->>Controller: generateInterviewReport(req, res)
+    Controller->>Service: generateInterviewReport(resumeText, jobDescription)
+    Service->>AI: GoogleGenerativeAI.generateContent()
+    AI-->>Service: JSON Response (Zod Validated)
+    Service-->>Controller: Report Object
+    Controller-->>Client: 200 OK (JSON Data)
 ```
-
-1. **Environment Loading** — Loads variables from `.env` via `dotenv`.
-2. **Database Initialization** — Calls `connectToDB()` to establish a Mongoose connection.
-3. **Cache Initialization** — Calls `redisClient.connect()`. If it fails, the system catches the error and proceeds (rate limiters fall back to in-memory storage).
-4. **Deferred App Loading** — The Express `app` is required **after** database connections are established.
-5. **Port Binding** — The server begins listening on the configured `PORT`.
-
-### Express Middleware Stack
-
-| Middleware | Functionality |
-| :--- | :--- |
-| **Manual CORS** | Validates `req.headers.origin` against `FRONTEND_URL`, sets `Access-Control-Allow-Credentials`, handles `OPTIONS` preflight. |
-| **Trust Proxy** | Configured to `1` for correct client IP detection behind load balancers. |
-| **JSON Parser** | Standard `express.json()` for parsing request bodies. |
-| **Cookie Parser** | Enables extraction of JWTs from `httpOnly` cookies. |
-
-```mermaid
-graph TD
-    subgraph "Request Lifecycle"
-        REQ["Incoming Request"] --> CORS["Manual CORS Middleware"]
-        CORS --> PROXY["app.set('trust proxy', 1)"]
-        PROXY --> PARSER["express.json() / cookieParser()"]
-        PARSER --> ROUTER{"Route Matcher"}
-
-        ROUTER -->|"/api/auth"| AUTH["authRouter"]
-        ROUTER -->|"/api/interview"| INT["interviewRouter"]
-        ROUTER -->|"/api/jobs"| JOB["jobRouter"]
-    end
-```
-
-### Routing Domains
-
-- **Authentication (`/api/auth`):** User lifecycle — registration, login, secure logout with Redis-backed token invalidation.
-- **Interview Engine (`/api/interview`):** Resume parsing, AI report generation, live interview session tracking.
-- **Job Services (`/api/jobs`):** AI-driven job recommendations based on analyzed resume skills.
 
 ---
 
-## Data Models & Database
+## 5. Authentication System
 
-The persistence layer utilizes MongoDB via the Mongoose ODM. The system is designed around three primary entities.
+The authentication system uses a stateless **JWT-in-Cookie** strategy, enhanced by **Redis** for token revocation and rate limiting.
 
-### Entity Relationship Diagram
-
-```mermaid
-classDiagram
-    direction LR
-    class User {
-        +String username
-        +String email
-        +String password
-    }
-    class InterviewReport {
-        +String title
-        +String jobDescription
-        +Number matchScore
-        +Array technicalQuestions
-        +Array behavioralQuestions
-        +Array skillGaps
-        +Array preparationPlan
-    }
-    class InterviewSession {
-        +Array transcript
-        +Number overallScore
-        +Object skills
-        +Object aiMetrics
-    }
-
-    User "1" --> "0..*" InterviewReport : owns
-    User "1" --> "0..*" InterviewSession : performs
-    InterviewReport "1" <-- "0..*" InterviewSession : references
-```
-
-### User Model
-
-The `userModel` manages identity and authentication:
-
-| Field | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `username` | `String` | `required`, `unique` | Unique identifier chosen by the user |
-| `email` | `String` | `required`, `unique` | Used for login and identification |
-| `password` | `String` | `required` | Hashed representation (bcrypt, 10 salt rounds) |
-
-### InterviewReport Model
-
-The `interviewReportModel` stores AI-driven resume and job description analysis using nested sub-schemas:
-
-| Sub-Schema | Fields | Description |
-| :--- | :--- | :--- |
-| `technicalQuestionSchema` | `question`, `intention`, `answer` | AI-generated technical questions |
-| `behavioralQuestionSchema` | `question`, `intention`, `answer` | Behavioral assessment questions |
-| `skillGapSchema` | `skill`, `severity` (low/medium/high) | Identified skill gaps |
-| `preparationPlanSchema` | `day`, `focus`, `tasks` | Day-by-day roadmap |
-
-### InterviewSession Model
-
-The `interviewSessionModel` captures the results of a live mock interview, including biometric data:
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `transcript` | `Array<Object>` | Array of `{ question, answer, feedback }` for each turn |
-| `overallScore` | `Number` | 0-10 holistic score from AI evaluation |
-| `skills` | `Object` | Scores for `confidence`, `communication`, `correctness` |
-| `aiMetrics` | `Object` | Biometric data: `avgConfidence`, `eyeContactScore` |
-| `user` | `ObjectId` | Reference to the `users` collection |
-| `interviewReport` | `ObjectId` | Reference to the parent `InterviewReport` |
-
-### Data Entity Lifecycle
+### 5.1 JWT Cookie Strategy
 
 ```mermaid
 sequenceDiagram
-    participant U as "userModel"
-    participant R as "interviewReportModel"
-    participant S as "interviewSessionModel"
+    participant User as "Browser (Login.jsx)"
+    participant Hook as "useAuth.js"
+    participant API as "auth.api.js"
+    participant Ctrl as "auth.controller.js"
+    participant Svc as "auth.service.js"
+    participant DB as "user.model.js (MongoDB)"
+    participant Redis as "redis.js"
 
-    Note over U, S: User Registration
-    U->>U: "username" & "email" indexed
-
-    Note over R: Resume Analysis (generateInterviewReport)
-    R->>R: Store "matchScore" & "preparationPlan"
-    R-->>U: ref: "user" (ObjectId)
-
-    Note over S: Live Interview (evaluateLiveInterview)
-    S->>S: Capture "transcript" & "aiMetrics"
-    S-->>U: ref: "user" (ObjectId)
-    S-->>R: ref: "interviewReport" (ObjectId)
+    User->>Hook: handleSubmit({email, password})
+    Hook->>API: login({email, password})
+    API->>Ctrl: POST /api/auth/login
+    Ctrl->>Svc: login({email, password})
+    Svc->>DB: findOne({email})
+    DB-->>Svc: User Object (Hashed Password)
+    Svc->>Svc: bcrypt.compare()
+    Svc->>Svc: generateToken(user)
+    Svc-->>Ctrl: {user, token}
+    Ctrl->>Ctrl: res.cookie("token", token, cookieOptions)
+    Ctrl-->>API: 200 OK (User Data)
+    API-->>Hook: {success: true, user}
+    Hook-->>User: navigate("/dashboard")
 ```
-
-### Indexing & Performance
-
-1. **Unique Indexes**: Automatically created for `User.username` and `User.email` to prevent duplicates and speed up authentication queries.
-2. **Foreign Key References**: Uses `mongoose.Schema.Types.ObjectId` with `ref` to enable `populate()` calls.
-3. **Timestamps**: Both `InterviewReport` and `InterviewSession` utilize `{ timestamps: true }` to automatically manage `createdAt` and `updatedAt` fields.
-
----
-
-## Authentication System
-
-### Registration & Identity Management
-
-User registration is handled by `registerUserController`. It enforces data integrity by checking for required fields and validating a minimum password length of 8 characters.
-
-**Registration Data Flow:**
-1. **Request**: Client sends `username`, `email`, and `password`.
-2. **Validation**: `authRateLimiter` checks IP quota.
-3. **Uniqueness**: `userModel.findOne` checks for duplicates using `$or` operator.
-4. **Hashing**: `bcrypt.hash` generates a secure string (10 salt rounds).
-5. **Persistence**: `userModel.create` saves the user.
-6. **Token Issuance**: A JWT is signed and set as an `httpOnly` cookie.
-
-### Login & Session Issuance
-
-The `loginUserController` authenticates users by comparing credentials against hashed values using `bcrypt.compare`.
-
-**JWT Configuration:**
-- **Payload**: Contains `id` (MongoDB `_id`) and `username`.
-- **Expiry**: Set to `1d` (24 hours).
-- **Secret**: Read from `process.env.JWT_SECRET`.
 
 **Cookie Configuration:**
 
-| Property | Value | Purpose |
-| :--- | :--- | :--- |
-| `httpOnly` | `true` | Prevents JavaScript access (XSS protection) |
-| `secure` | `true` | Cookie only sent over HTTPS |
-| `sameSite` | `"None"` | Required for cross-domain cookies (e.g., Vercel frontend → Render backend) |
-| `maxAge` | `86400000` (24h) | Matches JWT expiry |
+| Property | Value | Reason |
+|:---|:---|:---|
+| `httpOnly` | `true` | Prevents XSS-based token theft |
+| `secure` | `true` | Ensures HTTPS-only transmission |
+| `sameSite` | `"None"` | Allows cross-domain cookies (Vercel ↔ Render) |
+| Expiry | 1 day | Token TTL |
 
-```mermaid
-sequenceDiagram
-    participant C as "Client (React)"
-    participant S as "Express Server"
-    participant DB as "MongoDB"
-    participant R as "Redis"
+**Password Security:**
+- Passwords are hashed with `bcryptjs` at salt factor 10
+- Minimum password length: 8 characters
+- Passwords are never stored in plaintext
 
-    C->>S: POST /api/auth/login {email, password}
-    S->>DB: userModel.findOne({ email })
-    DB-->>S: User Document
-    S->>S: bcrypt.compare(password, hash)
-    S->>S: jwt.sign({ id, username })
-    S->>C: Set-Cookie: token=JWT (httpOnly, secure, sameSite=None)
-    Note over C: Cookie stored by browser
+### 5.2 Token Blacklisting (Redis)
 
-    C->>S: GET /api/interview/ (Cookie auto-attached)
-    S->>R: redisClient.get("blacklist:<token>")
-    R-->>S: null (not blacklisted)
-    S->>S: jwt.verify(token)
-    S->>S: req.user = decoded
-    S->>S: next() → Controller
-```
+Upon logout, the token's remaining TTL is calculated and stored in Redis with a `blacklist:` prefix. The `authUser` middleware checks `redisClient.isOpen` before querying the blacklist on every protected request.
 
-### The authUser Middleware
+### 5.3 Rate Limiting
 
-The `authUser` middleware in `auth.middleware.js` is the central gatekeeper for all protected routes. It performs a two-step verification:
+| Feature | Configuration |
+|:---|:---|
+| Window | 15 Minutes |
+| Max Requests | 20 attempts |
+| Key Strategy | `x-device-id` header → `req.body.email` → `req.ip` |
+| Store | `RedisStore` (falls back to `MemoryStore`) |
 
-1. **Token Extraction**: Checks `req.cookies.token` first, then falls back to `Authorization: Bearer <token>` header.
-2. **Redis Blacklist Check**: Queries Redis for `blacklist:<token>`. If found, the token has been invalidated via logout.
-3. **JWT Verification**: Calls `jwt.verify()` to validate signature and expiry.
-4. **Payload Injection**: Attaches the decoded payload (`id`, `username`) to `req.user`.
+### 5.4 Auth Middleware Flow
 
 ```mermaid
 graph TD
-    REQ["Incoming Request"] --> EXT{"Extract Token"}
-    EXT -->|"Cookie"| TOK["token = req.cookies.token"]
-    EXT -->|"Header"| TOK2["token = Authorization.split(' ')[1]"]
-    TOK --> BL{"Redis Blacklist Check"}
-    TOK2 --> BL
-    BL -->|"Blacklisted"| DENY["401: Session expired"]
-    BL -->|"Clean"| VER{"jwt.verify()"}
-    VER -->|"Valid"| PASS["req.user = decoded → next()"]
-    VER -->|"Invalid/Expired"| DENY2["401: Invalid or expired token"]
+    Request["Incoming Request"] --> CookieCheck["Check req.cookies.token"]
+    CookieCheck -- "No Token" --> Deny["401 Unauthorized"]
+    CookieCheck -- "Token Exists" --> RedisCheck["Check Redis Blacklist"]
+    RedisCheck -- "In Blacklist" --> Deny
+    RedisCheck -- "Not Blacklisted" --> Verify["jwt.verify()"]
+    Verify -- "Invalid/Expired" --> Deny
+    Verify -- "Valid" --> AttachUser["Attach user to req.user"]
+    AttachUser --> Next["next() -> Controller"]
+
+    subgraph "Protected Resources"
+        Next --> InterviewAPI["/api/interview/*"]
+        Next --> GetMe["/api/auth/get-me"]
+    end
 ```
-
-### Logout & Redis Blacklisting
-
-The `logoutUserController` implements a secure token invalidation strategy using Redis TTL-based blacklisting:
-
-1. **Decode Token**: Extracts the token's `exp` (expiration) claim.
-2. **Calculate TTL**: Computes `timeLeft = exp - currentTime` (seconds until natural expiry).
-3. **Redis Blacklist**: Stores `blacklist:<token>` with `setEx` using the calculated TTL — the entry self-destructs when the token would have expired anyway.
-4. **Clear Cookie**: Removes the `token` cookie from the browser.
-
-This approach ensures:
-- Logged-out tokens are immediately rejected by `authUser`.
-- Redis memory is automatically reclaimed (no manual cleanup needed).
-- Even if Redis is temporarily down, the cookie is still cleared.
-
-### Security Middleware
-
-| Middleware | Applied To | Configuration |
-| :--- | :--- | :--- |
-| `authRateLimiter` | `/api/auth/register`, `/api/auth/login` | 20 requests per 15 minutes per IP. Falls back to `MemoryStore` if Redis is down. |
-| `authUser` | All `/api/interview/*` and `/api/jobs/*` routes | JWT + Redis blacklist verification. |
-| `handleResumeUpload` | `POST /api/interview/` | Multer wrapper — catches file size (5MB) and type (PDF only) errors. |
 
 ---
 
-## Interview & Job API Routes
+## 6. Interview API
 
-### Interview API (`/api/interview`)
+### 6.1 API Endpoints
 
-All interview routes require `authUser` middleware. AI-intensive routes additionally use `aiRateLimiter`.
+**Preparation & Reports**
 
-| Method | Route | Rate Limited | Controller | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/` | Yes | `generateInterViewReportController` | Upload resume (PDF) + JD → AI report |
-| `GET` | `/` | No | `getAllInterviewReportsController` | List all reports for logged-in user |
-| `GET` | `/report/:interviewId` | No | `getInterviewReportByIdController` | Fetch single report by ID |
-| `DELETE` | `/report/:interviewId` | No | `deleteInterviewReportController` | Delete report (owner only) |
-| `POST` | `/resume/pdf/:interviewReportId` | Yes | `generateResumePdfController` | Generate ATS-optimized PDF resume |
-| `POST` | `/live/questions` | Yes | `getLiveQuestionsController` | Generate 3 live interview questions |
-| `POST` | `/live/evaluate` | Yes | `evaluateInterviewController` | Grade full interview transcript |
-| `POST` | `/live/evaluate-single` | Yes | `evaluateSingleAnswerController` | Grade a single Q&A pair (instant coaching) |
-| `POST` | `/live/hint` | Yes | `getLiveHintController` | Get AI Copilot hint for current question |
-| `POST` | `/roadmap/dynamic` | Yes | `generateDynamicRoadmapController` | Generate N-day preparation roadmap |
-| `GET` | `/sessions` | No | `getAllInterviewSessionsController` | Fetch all past mock interview sessions |
+| Endpoint | Controller | Description |
+|:---|:---|:---|
+| `POST /generate-report` | `generateInterViewReportController` | Processes resume/job desc to create a prep report |
+| `GET /reports` | `getAllInterviewReportsController` | Retrieves all reports for the authenticated user |
+| `GET /reports/:interviewId` | `getInterviewReportByIdController` | Fetches a specific report by ID |
+| `DELETE /reports/:interviewId` | `deleteInterviewReportController` | Removes a report from the database |
+| `GET /resume-pdf/:id` | `generateResumePdfController` | Generates a formatted PDF resume via Puppeteer |
 
-### Job API (`/api/jobs`)
+**Live Interview Engine**
 
-| Method | Route | Rate Limited | Controller | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/search?location=...` | Yes | `searchJobsController` | AI-powered job search using resume skills |
+| Endpoint | Controller | Description |
+|:---|:---|:---|
+| `POST /live-questions` | `getLiveQuestionsController` | Generates dynamic questions based on job context |
+| `POST /evaluate-answer` | `evaluateSingleAnswerController` | Real-time feedback for a single Q&A pair |
+| `POST /hint` | `getLiveHintController` | Generates an AI Copilot hint for the current question |
+| `POST /evaluate-session` | `evaluateInterviewController` | Final grading of the full transcript and metrics |
+| `GET /sessions` | `getAllInterviewSessionsController` | History of completed mock interviews |
 
-**Job Search Flow:**
-1. Fetches the user's latest `InterviewReport` to extract resume text.
-2. Calls `getJobSearchQueryFromResume()` — Gemini extracts a single job title from the resume.
-3. Checks Redis cache (`jobs:<query>:<location>`, TTL: 6 hours).
-4. On cache miss, calls `fetchLiveJobs()` via JSearch/RapidAPI.
+**Learning & Roadmap**
 
-### Rate Limiter Configuration
+| Endpoint | Controller | Description |
+|:---|:---|:---|
+| `POST /roadmap` | `generateDynamicRoadmapController` | Generates a day-by-day study plan |
 
-| Limiter | Window | Max Requests | Backing Store | Applied To |
-| :--- | :--- | :--- | :--- | :--- |
-| `authRateLimiter` | 15 minutes | 20 | Redis (fallback: Memory) | `/api/auth/register`, `/api/auth/login` |
-| `aiRateLimiter` | 15 minutes | 10 | Redis (`RedisStore`) | All AI-generation interview routes |
-| `jobRateLimiter` | 15 minutes | 20 | Redis (`RedisStore`) | `/api/jobs/search` |
+### 6.2 File Handling & PDF Parsing
 
-All rate limiters use `express-rate-limit` with `rate-limit-redis` (`RedisStore`) for distributed state. They set `standardHeaders: true` and `legacyHeaders: false`.
+- `multer` with `memoryStorage` — files stored in RAM as buffers in `req.file`
+- **Size limit**: 5 MB
+- **MIME type**: `application/pdf` only
+- `pdf-parse` extracts raw text from the buffer
+- If extracted text is < 50 characters, the file is sent to the AI as Base64-encoded `inlineData`
 
----
-
-## AI Service Layer
-
-The AI service layer (`ai.service.js`) is the core intelligence engine. It uses Google Gemini (`gemini-2.5-flash-lite`) with Zod schema validation to ensure structured, type-safe AI responses.
-
-### Core Infrastructure
-
-- **Model**: `gemini-2.5-flash-lite` (configured as `MODEL_NAME` constant).
-- **Retry Logic**: `callAiWithRetry()` implements exponential backoff (up to 3 retries) for 429/quota errors.
-- **Cache Key Generation**: `generateCacheKey()` creates SHA-256 hashes of input combinations for Redis caching.
-- **Schema Validation**: All AI responses are constrained by Zod schemas converted to JSON Schema via `zodToJsonSchema`.
-
-```mermaid
-graph TD
-    subgraph "AI Service (ai.service.js)"
-        RETRY["callAiWithRetry()"] --> GEMINI["Google Gemini API"]
-        CACHE["generateCacheKey()"] --> REDIS[("Redis Cache")]
-        ZOD["Zod Schemas"] --> JSON_SCHEMA["zodToJsonSchema()"]
-        JSON_SCHEMA --> GEMINI
-    end
-
-    subgraph "Zod Schemas"
-        S1["interviewReportSchema"]
-        S2["liveQuestionsSchema"]
-        S3["evaluationSchema"]
-        S4["dynamicRoadmapSchema"]
-    end
-
-    S1 --> ZOD
-    S2 --> ZOD
-    S3 --> ZOD
-    S4 --> ZOD
-```
-
-### Resume Analysis & Report Generation
-
-`generateInterviewReport({ resume, selfDescription, jobDescription })` — The primary analysis function.
-
-**Prompt Strategy**: Acts as a "Senior Technical Recruiter" to extract skills, projects, match score, questions, skill gaps, and a preparation plan.
-
-**Output Schema** (`interviewReportSchema`):
-- `matchScore` (0-100), `detectedSkills`, `identifiedProjects`
-- `technicalQuestions` / `behavioralQuestions` (each with `question`, `intention`, `answer`)
-- `skillGaps` (with `severity`: low/medium/high)
-- `preparationPlan` (day-by-day with `focus` and `tasks`)
-- `title` (extracted job title)
-
-**Caching**: The controller (`generateInterViewReportController`) caches the full report in Redis with a 24-hour TTL using a SHA-256 hash of `userId + resumeText + jobDescription + selfDescription`.
-
-### Live Interview AI Features
-
-| Function | Purpose | Output |
-| :--- | :--- | :--- |
-| `generateLiveQuestions()` | Generates exactly 3 interview questions based on resume, JD, and interview type (Technical/Behavioral/System Design/Mixed) | `{ questions: string[3] }` |
-| `evaluateLiveInterview()` | Grades the full transcript with biometric data (`avgConfidence`, `eyeContactScore`) | `{ overallScore, summary, skills, questionBreakdown }` |
-| `evaluateSingleAnswer()` | Provides instant per-answer coaching (3-4 sentences) | `{ feedback: string }` |
-| `generateLiveHint()` | Returns a 1-sentence AI Copilot hint without revealing the answer | `{ hint: string }` |
-
-**Graceful Degradation**: `generateLiveQuestions()` and `evaluateLiveInterview()` return hardcoded fallback responses when the Gemini API returns 429 errors, ensuring the user experience is never completely broken.
-
-### PDF Resume Generation Pipeline
+### 6.3 Caching Strategy
 
 ```mermaid
 sequenceDiagram
-    participant C as "Controller"
-    participant R as "Redis Cache"
-    participant G as "Gemini AI"
-    participant P as "Puppeteer (globalBrowser)"
+    participant Client
+    participant Router as "Interview Routes"
+    participant Multer as "file.middleware.js"
+    participant Controller as "interview.controller.js"
+    participant Service as "interview.service.js"
+    participant Redis as "redisClient"
+    participant AI as "ai.service.js"
+    participant DB as "interviewReportModel"
 
-    C->>R: GET resume_html:<sha256_hash>
+    Client->>Router: POST /generate-report (FormData)
+    Router->>Multer: upload.single("resume")
+    Multer-->>Router: req.file (Memory Buffer)
+    Router->>Controller: generateInterViewReportController()
+    Controller->>Service: generateInterviewReport(data)
+    
+    Service->>Redis: get(cacheKey)
     alt Cache Hit
-        R-->>C: Cached HTML JSON
+        Redis-->>Service: cachedReport
+        Service-->>Controller: { fromCache: true, report }
     else Cache Miss
-        C->>G: Generate ATS Resume HTML
-        G-->>C: { html: "<html>..." }
-        C->>R: SETEX (24h TTL)
+        Service->>AI: generateInterviewReport(resumeText, jobDesc)
+        AI-->>Service: aiGeneratedData
+        Service->>DB: create(interviewReport)
+        Service->>Redis: setEx(cacheKey, 86400, report)
+        Service-->>Controller: { fromCache: false, report }
     end
-    C->>P: generatePdfFromHtml(html)
-    P->>P: page.setContent() → page.pdf()
-    P-->>C: PDF Buffer
-    C-->>C: res.send(pdfBuffer)
+    Controller-->>Client: 200/201 JSON Response
 ```
 
-**Key Design Decisions:**
-- **Singleton Browser**: `globalBrowser` reuses a single Puppeteer instance across all requests (launching Chromium is expensive).
-- **HTML Caching, Not PDF Caching**: Redis caches the AI-generated HTML (small text), not the PDF binary (large blob). Puppeteer rendering is fast (~1s) and free; Gemini calls are slow (~10s) and cost money.
-- **Platform-Aware Executable Path**: `getBrowser()` checks `PUPPETEER_EXECUTABLE_PATH` env var first, then falls back to `/usr/bin/chromium-browser` only on Linux.
+Cache key is a SHA-256 hash of `userId + resumeText + jobDescription + selfDescription`. Reports are cached for **24 hours** (86,400 seconds).
 
-### Job Search Service
-
-`job.service.js` provides two functions:
-
-1. **`getJobSearchQueryFromResume(resumeText)`** — Uses Gemini to extract a single job title from resume text (e.g., "React Developer"). Falls back to "Software Engineer" on error.
-2. **`fetchLiveJobs(searchQuery, location)`** — Calls the JSearch API via RapidAPI with the extracted query and user-provided location. Returns up to ~10 results.
-
-**Caching**: Job results are cached in Redis for 6 hours (`jobs:<query>:<location>` key pattern).
-
-### Dynamic Roadmap Generation
-
-`generateDynamicRoadmap({ jobDescription, resumeText, days })` — Generates a custom N-day preparation roadmap.
-
-- Uses `dynamicRoadmapSchema` (Zod) to enforce structured output.
-- Day 1 focuses on fundamentals/planning; Day N focuses on mock interviews/rest.
-- Called via `POST /api/interview/roadmap/dynamic`.
-
----
-
-## Frontend Architecture
-
-The frontend is a React 19 Single Page Application built with Vite, organized using a feature-based architecture.
-
-### Routing & Application Shell
-
-**Provider Hierarchy** (`App.jsx`):
-
-```
-<AuthProvider>          ← manages user login state
-  <InterviewProvider>   ← manages interview-related data
-    <RouterProvider>    ← loads pages based on URL
-```
-
-**Route Definitions** (`app.routes.jsx`):
-
-| Path | Component | Protected | Description |
-| :--- | :--- | :--- | :--- |
-| `/` | `Landing` | No | Public landing page |
-| `/login` | `Login` | No | Login form |
-| `/register` | `Register` | No | Registration form |
-| `/dashboard` | `Home` | Yes | Upload resume + JD, view reports |
-| `/interview/:interviewId` | `Interview` | Yes | Report detail with tabs |
-| `/interview/:interviewId/live` | `LiveInterview` | Yes | Voice-enabled mock interview |
-| `/history` | `MockHistory` | Yes | Past session analytics |
-| `*` | `Navigate to /` | — | Catch-all redirect |
-
-### Authentication Feature (Frontend)
-
-**State Management** (`auth.context.jsx`):
-- `AuthContext` provides `user`, `setUser`, `loading`, `setLoading`.
-- `AuthProvider` wraps the entire app.
-
-**Hook** (`useAuth.js`):
-- `handleLogin({ email, password })` — Calls API, sets user state.
-- `handleRegister({ username, email, password })` — Calls API, sets user state.
-- `handleLogout()` — Calls API, clears user state.
-- **Auto-session restore**: On mount, calls `getMe()` to restore session from the `httpOnly` cookie.
-
-**Route Protection** (`Protected.jsx`):
-- Shows "Loading..." while `loading` is true.
-- Redirects to `/login` if `user` is null.
-- Renders `children` if authenticated.
-
-**API Client** (`auth.api.js`):
-- Axios instance with `withCredentials: true` for cookie-based auth.
-- Base URL from `VITE_API_URL` environment variable.
-
-### Interview Feature — Pages & State
-
-**State Management** (`interview.context.jsx`):
-- `InterviewContext` provides `loading`, `report`, `reports` (and their setters).
-
-**Hook** (`useInterview.js`):
-- `generateReport()` — Uploads resume + JD via `FormData`, receives AI report.
-- `getReportById()` — Fetches a single report.
-- `getReports()` — Fetches all reports for the dashboard.
-- `getResumePdf()` — Downloads AI-generated PDF resume (creates a Blob URL and triggers download).
-- **Auto-fetch**: On mount, fetches report by ID (if `interviewId` param exists) or all reports.
-
-**API Client** (`interview.api.js`):
-- `generateInterviewReport()` — `POST /api/interview/` with `multipart/form-data`.
-- `getInterviewReportById()` — `GET /api/interview/report/:id`.
-- `getAllInterviewReports()` — `GET /api/interview/`.
-- `generateResumePdf()` — `POST /api/interview/resume/pdf/:id` with `responseType: "blob"`.
-- `getLiveQuestions()` — `POST /api/interview/live/questions`.
-- `evaluateInterview()` — `POST /api/interview/live/evaluate`.
-- `evaluateSingleAnswer()` — `POST /api/interview/live/evaluate-single`.
-- `getHint()` — `POST /api/interview/live/hint`.
-- `generateDynamicRoadmap()` — `POST /api/interview/roadmap/dynamic`.
-- `getAllInterviewSessions()` — `GET /api/interview/sessions`.
-- `deleteInterviewReport()` — `DELETE /api/interview/report/:id`.
-
-### Live Interview Engine (Frontend)
-
-The `LiveInterview.jsx` page orchestrates the real-time interview experience by combining three custom hooks:
+### 6.4 Controller-to-Service Mapping
 
 ```mermaid
 graph TD
-    subgraph "LiveInterview.jsx"
-        LI["LiveInterview Page"]
+    subgraph "Controllers (interview.controller.js)"
+        C1["generateInterViewReportController"]
+        C2["getLiveQuestionsController"]
+        C3["evaluateInterviewController"]
+        C4["generateDynamicRoadmapController"]
+        C5["generateResumePdfController"]
     end
 
-    subgraph "Custom Hooks"
-        SP["useSpeech"]
-        FA["useFaceAnalysis"]
-        INT["useInterview"]
+    subgraph "Services (interview.service.js)"
+        S1["generateInterviewReport()"]
+        S2["getLiveQuestions()"]
+        S3["evaluateInterview()"]
+        S4["generateDynamicRoadmap()"]
+        S5["generatePdf()"]
     end
 
-    subgraph "Browser APIs"
-        TTS["SpeechSynthesis (TTS)"]
-        STT["SpeechRecognition (STT)"]
-        CAM["getUserMedia (Camera)"]
+    subgraph "Models & External"
+        M1[("interviewReportModel")]
+        M2[("interviewSessionModel")]
+        A1["ai.service.js"]
     end
 
-    subgraph "ML Models"
-        SSD["ssdMobilenetv1"]
-        LM["faceLandmark68Net"]
-        EXP["faceExpressionNet"]
-    end
+    C1 --> S1
+    C2 --> S2
+    C3 --> S3
+    C4 --> S4
+    C5 --> S5
 
-    LI --> SP
-    LI --> FA
-    LI --> INT
-    SP --> TTS
-    SP --> STT
-    FA --> CAM
-    FA --> SSD
-    FA --> LM
-    FA --> EXP
+    S1 --> M1
+    S1 --> A1
+    S3 --> M2
+    S4 --> M1
+    S5 --> A1
 ```
-
-**`useSpeech` Hook** — Manages the voice interaction loop:
-- **TTS (Text-to-Speech)**: `speak(text, onEndCallback)` — Uses `SpeechSynthesisUtterance` to read questions aloud. Tracks `isAITalking` state.
-- **STT (Speech-to-Text)**: `startListening()` / `stopListening()` — Uses `webkitSpeechRecognition` with `continuous: true` and `interimResults: true`.
-- **Interruption Logic**: If the user speaks 4+ words while AI is talking (after 1.5s), `speechSynthesis.cancel()` is called to let the user take over.
-- **Manual Input**: `updateTranscriptManually(text)` allows typed answers as a fallback.
-- Returns: `{ speak, startListening, stopListening, resetTranscript, updateTranscriptManually, isListening, isAITalking, transcript }`.
-
-### Face Analysis & ML Models
-
-**`useFaceAnalysis` Hook** — Real-time biometric analysis using `face-api.js`:
-
-**Models Loaded** (from `/public/models/`):
-- `ssdMobilenetv1` — High-accuracy face detection.
-- `faceLandmark68Net` — 68-point facial landmark detection.
-- `faceExpressionNet` — Expression classification (happy, sad, neutral, etc.).
-
-**Analysis Pipeline** (runs every 500ms):
-
-| Metric | Method | Threshold |
-| :--- | :--- | :--- |
-| **Eye Contact** | Nose offset from face center (jaw landmarks) | `< 25px` = looking at screen |
-| **Smile Detection** | `expressions.happy` | `> 0.6` = smiling |
-| **Dominant Expression** | Highest value in expressions object | — |
-| **Confidence Score** | Composite: eye contact (+20/-20), smile (+10), expression (+10/-15) | 0-100 scale |
-
-**EMA Smoothing**: `smoothedScore = 0.65 * previous + 0.35 * rawScore` — Prevents single-frame spikes from blinks or yawns.
-
-**Debounce**: Face must be lost for 6 consecutive frames (~3 seconds) before resetting to "Face not detected" — tolerates brief lighting glitches.
-
-**Output**: `{ analysis: { eyeContact, isSmiling, confidenceScore, dominantExpression }, modelsLoaded }`.
-
-### Styling System
-
-The frontend uses a **glassmorphism design system** implemented in SCSS:
-
-- `style.scss` — Global styles, glassmorphism variables, and base layout.
-- `style/button.scss` — Shared button styles.
-- Feature-specific SCSS modules in `features/auth/` and `features/interview/style/`.
 
 ---
 
-## Caching, Rate Limiting & Security
+## 7. AI Service — Google Gemini Integration
 
-### Redis Infrastructure
+**Model**: `gemini-2.5-flash-lite` via `@google/genai` SDK
 
-Redis serves three distinct roles in the system:
+### 7.1 Schema Enforcement (Zod)
+
+Every AI function is bound to a Zod schema. Schemas are converted to JSON Schema format and passed to the Gemini API to enforce structured responses, preventing runtime errors from hallucinated or malformed outputs.
+
+| Schema Name | Purpose | Key Fields |
+|:---|:---|:---|
+| `interviewReportSchema` | Comprehensive prep report | `matchScore`, `technicalQuestions`, `skillGaps`, `preparationPlan` |
+| `evaluationSchema` | Live interview grading | `overallScore`, `skills` (confidence/correctness), `questionBreakdown` |
+| `liveQuestionsSchema` | Real-time question bank | `questions` (exactly 3 strings) |
+| `resumePdfSchema` | AI-enhanced resume | `html` (complete document string) |
+
+### 7.2 Exported AI Functions
+
+| Function | Description |
+|:---|:---|
+| `generateInterviewReport` | Full analysis: match score, custom questions, skill gaps. Uses SHA-256 cache key to avoid redundant API calls. |
+| `generateResumePdf` | Two-stage: Gemini generates Tailwind-styled HTML → Puppeteer renders it to a PDF buffer. |
+| `evaluateLiveInterview` | Processes final transcript + biometric metrics (`avgConfidence`, `eyeContactScore`). |
+| `generateLiveHint` | AI Copilot: takes current question + partial transcript to provide a subtle hint. |
+| `generateDynamicRoadmap` | Generates a day-by-day study plan based on skill gaps and a timeframe (1–30 days). |
+
+### 7.3 Exponential Backoff & Retry
+
+The `callAiWithRetry` function handles `429 Too Many Requests` from the Gemini API:
+
+```
+waitTime = Math.pow(2, retryCount) * 1000 + Math.random() * 1000
+```
+
+- **Max retries**: 3 attempts
+- **Trigger**: HTTP `429` or "quota" error messages
+- **Jitter**: Random component prevents synchronized retry spikes
+
+### 7.4 Resume PDF Generation Pipeline
+
+```mermaid
+sequenceDiagram
+    participant IS as InterviewService
+    participant AS as ai.service.js
+    participant R as redisClient
+    participant G as Gemini API
+    participant P as Puppeteer
+
+    IS->>AS: generateResumePdf(data)
+    AS->>R: GET resume_html_cache:hash
+    alt Cache Hit
+        R-->>AS: Return HTML
+    else Cache Miss
+        AS->>G: Generate Tailwind HTML
+        G-->>AS: HTML String
+        AS->>R: SETEX resume_html_cache:hash 86400
+    end
+    AS->>P: launch()
+    AS->>P: setContent(html)
+    AS->>P: pdf()
+    P-->>AS: Buffer
+    AS-->>IS: Return PDF Buffer
+```
+
+- **Cache key**: `resume_html_cache:[sha256_hash]`
+- **TTL**: 24 hours (86,400 seconds)
+- Puppeteer rendering is CPU-intensive; caching the HTML avoids re-running AI generation
+
+---
+
+## 8. Job Search API
+
+### 8.1 Data Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User (Frontend)
+    participant C as searchJobsController
+    participant R as Redis (Cache)
+    participant S as job.service.js
+    participant AI as Gemini (AI Service)
+    participant J as JSearch (RapidAPI)
+
+    U->>C: GET /api/jobs/search?location=...
+    C->>C: validateJobSearch (Middleware)
+    C->>C: Fetch latest InterviewReport
+    alt title exists in report
+        C->>C: Use report.title as searchQuery
+    else title missing
+        C->>S: getJobSearchQueryFromResume(resumeText)
+        S->>AI: callAiWithRetry()
+        AI-->>S: Return Job Title (e.g. "React Developer")
+        S-->>C: Return searchQuery
+    end
+    
+    C->>R: GET cacheKey (jobs:query:location)
+    alt Cache Hit
+        R-->>C: Return cached JSON
+        C-->>U: 200 OK (Cached Results)
+    else Cache Miss
+        C->>S: fetchLiveJobs(searchQuery, location)
+        S->>J: GET /search (RapidAPI)
+        J-->>S: Return Job List
+        S-->>C: Return jobs array
+        C->>R: SETEX cacheKey (6 Hours)
+        C-->>U: 200 OK (Fresh Results)
+    end
+```
+
+### 8.2 Implementation Details
+
+- **AI Query Extraction**: Uses `gemini-2.5-flash-lite` to extract a clean job title from resume text. Fallback: `"Software Engineer"` if extraction fails.
+- **External API**: JSearch on RapidAPI (`https://jsearch.p.rapidapi.com/search`), `num_pages: '1'` for speed.
+- **Cache key format**: `jobs:{query}:{location}` (lowercased, spaces replaced with underscores)
+- **Cache TTL**: 6 hours (21,600 seconds)
+- **Rate limit**: 10 requests / 15 minutes per IP
+
+### 8.3 API Reference
+
+**`GET /api/jobs/search`**
+
+| Parameter | Type | Required | Description |
+|:---|:---|:---|:---|
+| `location` | String (query) | Yes | City or country (2–100 chars) |
+
+**Response (200 OK):**
+```json
+{
+  "message": "Jobs fetched successfully",
+  "searchQuery": "Frontend Developer",
+  "jobs": [
+    {
+      "job_id": "...",
+      "employer_name": "Tech Corp",
+      "job_title": "Senior Frontend Developer",
+      "job_apply_link": "..."
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `400` — Missing or invalid `location`
+- `404` — No `InterviewReport` found (resume data missing)
+- `429` — Exceeded 10 requests/15 min limit
+
+---
+
+## 9. Data Models
+
+### 9.1 Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    "users" ||--o{ "InterviewReport" : "owns"
+    "users" ||--o{ "InterviewSession" : "performs"
+    "InterviewReport" ||--o{ "InterviewSession" : "referenced_by"
+
+    "users" {
+        string username "unique, indexed"
+        string email "unique, indexed"
+        string password "hashed"
+    }
+
+    "InterviewReport" {
+        ObjectId user "FK"
+        string title
+        number matchScore
+        string jobDescription
+        array technicalQuestions
+        array behavioralQuestions
+        array skillGaps
+        array preparationPlan
+    }
+
+    "InterviewSession" {
+        ObjectId user "FK"
+        ObjectId interviewReport "FK"
+        number overallScore
+        object skills
+        object aiMetrics
+        array transcript
+    }
+```
+
+### 9.2 User Model
+
+| Field | Type | Description |
+|:---|:---|:---|
+| `username` | String | Unique identifier; auto-indexed |
+| `email` | String | Unique email; auto-indexed |
+| `password` | String | bcrypt-hashed password |
+
+### 9.3 InterviewReport Model
+
+**Sub-schemas** (no `_id`):
+- `technicalQuestionSchema` — `question`, `intention`, `answer`
+- `behavioralQuestionSchema` — same structure, soft-skills focused
+- `skillGapSchema` — `skill`, `severity` (`low` | `medium` | `high`)
+- `preparationPlanSchema` — `focus`, `tasks[]` per day
+
+**Main schema fields:**
+
+| Field | Type | Details |
+|:---|:---|:---|
+| `user` | ObjectId | Reference to `users` collection |
+| `matchScore` | Number | 0–100 resume/JD alignment score |
+| `detectedSkills` | Array[String] | Skills extracted from resume |
+| `title` | String | Job title being prepared for |
+| `technicalQuestions` | Array | AI-generated technical Q&A |
+| `behavioralQuestions` | Array | AI-generated behavioral Q&A |
+| `skillGaps` | Array | Identified gaps with severity |
+| `preparationPlan` | Array | Day-by-day study plan |
+
+Uses `{ timestamps: true }` for automatic `createdAt`/`updatedAt`.
+
+### 9.4 InterviewSession Model
+
+| Field | Type | Details |
+|:---|:---|:---|
+| `user` | ObjectId | Reference to `users` |
+| `interviewReport` | ObjectId | Reference to `InterviewReport` |
+| `overallScore` | Number | Final session score |
+| `skills` | Object | `confidence`, `communication`, `correctness` |
+| `aiMetrics` | Object | `avgConfidence`, `eyeContactScore` (biometric) |
+| `transcript` | Array | `{ question, answer, feedback }` per turn |
+| `summary` | String | AI-generated session summary |
+
+Uses `{ timestamps: true }`.
+
+---
+
+## 10. Middleware & Validation
+
+### 10.1 Validator Definitions
+
+All routes use `express-validator` chains that terminate with `handleValidationErrors`. On failure, returns `400 Bad Request` with the first error message.
+
+| Validator | Scope | Key Constraints |
+|:---|:---|:---|
+| `validateRegister` | Registration | Username (3–30 chars, alphanumeric), Email (valid), Password (min 8) |
+| `validateLogin` | Login | Email (required, normalized), Password (required) |
+| `validateGenerateReport` | Interview Prep | Job Description (5–10,000 chars), Self Description (max 2,000) |
+| `validateLiveQuestions` | AI Interview | Job Description, Interview Type (enum), User Command |
+| `validateEvaluateInterview` | AI Grading | Transcript (non-empty array), items with question/answer strings |
+| `validateEvaluateSingleAnswer` | Live Feedback | Question (max 1k), Answer (max 5k), Job Description |
+| `validateLiveHint` | AI Copilot | Question (required), Job Description (required) |
+| `validateDynamicRoadmap` | Roadmap Gen | Job Description, Days (integer 1–30) |
+| `validateJobSearch` | Job API | Location (query param, 2–100 chars) |
+| `validateMongoId` | URL Params | Valid MongoDB ObjectId |
+
+### 10.2 File Upload Middleware
+
+- **Storage**: `multer` with `memoryStorage` (files in RAM, not disk)
+- **Size limit**: 5 MB
+- **MIME type**: `application/pdf` only — any other type triggers an immediate error
+
+### 10.3 Error Handling Architecture
+
+```mermaid
+sequenceDiagram
+    participant C as Controller (async)
+    participant AH as asyncHandler
+    participant GEH as errorHandler Middleware
+    participant U as User
+
+    U->>AH: HTTP Request
+    AH->>C: Execute Logic
+    Note over C: Error occurs (e.g. AI Service fails)
+    C-->>AH: Promise Rejection
+    AH->>GEH: next(err)
+    GEH->>U: JSON Response { success: false, message: "..." }
+```
+
+- **`asyncHandler`**: Wraps async controllers; catches rejected promises and passes to `next()`
+- **`errorHandler`**: Global middleware; defaults to status `500`
+- **Environment sensitivity**: In `development`, includes full stack trace; in `production`, suppresses it
+
+---
+
+## 11. Frontend — React Application
+
+### 11.1 Provider Hierarchy
 
 ```mermaid
 graph TD
-    subgraph "Redis Roles"
-        RL["Rate Limiting (RedisStore)"]
-        BL["Token Blacklisting"]
-        AC["AI Response Caching"]
+    subgraph "Root Entry"
+        MAIN["main.jsx"] --> APP["App.jsx"]
     end
 
-    subgraph "Key Patterns"
-        K1["rl:<ip_hash> (auto-managed)"]
-        K2["blacklist:<jwt_token>"]
-        K3["report_cache:<sha256>"]
-        K4["resume_html:<sha256>"]
-        K5["jobs:<query>:<location>"]
+    subgraph "Global Providers"
+        APP --> EB["ErrorBoundary"]
+        EB --> AP["AuthProvider"]
+        AP --> TOAST["Toaster"]
+        TOAST --> RP["RouterProvider"]
     end
 
-    RL --> K1
-    BL --> K2
-    AC --> K3
-    AC --> K4
-    AC --> K5
+    subgraph "Route Tree"
+        RP --> LAYOUT["InterviewLayout"]
+        LAYOUT --> IP["InterviewProvider"]
+        IP --> OUTLET["Outlet (Pages)"]
+    end
+
+    OUTLET --> HOME["Home.jsx"]
+    OUTLET --> LIVE["LiveInterview.jsx"]
+    OUTLET --> HIST["MockHistory.jsx"]
 ```
 
-**Redis Client Configuration** (`redis.js`):
-- **Reconnect Strategy**: Retries up to 5 times with gradual backoff (`retries * 500ms`, max `2000ms`). Returns `null` after 5 failures to allow the app to proceed without Redis.
-- **Keep-Alive**: `pingInterval: 300000` (5 minutes) to prevent idle disconnections.
-- **Error Handling**: Suppresses `Socket closed unexpectedly` errors to avoid log spam.
+### 11.2 Feature-Based Structure & Path Aliases
 
-**Cache TTLs:**
-
-| Cache Type | Key Pattern | TTL | Rationale |
-| :--- | :--- | :--- | :--- |
-| Interview Report | `report_cache:<sha256>` | 24 hours | Same inputs produce same AI output |
-| Resume HTML | `resume_html:<sha256>` | 24 hours | AI-generated HTML is expensive; Puppeteer rendering is cheap |
-| Job Listings | `jobs:<query>:<location>` | 6 hours | Job listings change slowly |
-| Token Blacklist | `blacklist:<token>` | Remaining JWT TTL | Auto-cleanup when token would have expired |
-
-### JWT Authentication & Token Lifecycle
-
-```mermaid
-stateDiagram-v2
-    [*] --> Active: "jwt.sign() on login/register"
-    Active --> Blacklisted: "logoutUserController → Redis setEx"
-    Active --> Expired: "24h TTL elapses"
-    Blacklisted --> Cleaned: "Redis TTL auto-deletes"
-    Expired --> [*]
-    Cleaned --> [*]
+```
+Frontend/src/
+├── features/
+│   ├── auth/           # Login, Register, AuthContext, useAuth
+│   └── interview/      # Home, Interview, LiveInterview, MockHistory
+├── components/         # Shared UI components
+├── utils/              # api.js (Axios), helpers
+└── assets/             # SCSS styles, static files
 ```
 
-**Token States:**
-1. **Active**: Valid JWT, not in Redis blacklist. Passes `authUser` middleware.
-2. **Blacklisted**: Token exists in Redis (`blacklist:<token>`). Rejected by `authUser` with "Session expired."
-3. **Expired**: JWT's `exp` claim has passed. `jwt.verify()` throws. Rejected by `authUser`.
-4. **Cleaned**: Blacklist entry auto-deleted by Redis TTL. No action needed.
+| Alias | Target | Purpose |
+|:---|:---|:---|
+| `@` | `src/` | Root source directory |
+| `@features` | `src/features/` | Feature modules |
+| `@components` | `src/components/` | Shared UI components |
+| `@utils` | `src/utils/` | Utility functions and API clients |
+| `@assets` | `src/assets/` | Global styles and static assets |
 
-### CORS & Network Security
+### 11.3 Axios API Utility
 
-| Security Layer | Implementation | Detail |
-| :--- | :--- | :--- |
-| **CORS Origin** | Manual middleware in `app.js` | Only allows `FRONTEND_URL` (trailing slash trimmed) |
-| **Credentials** | `Access-Control-Allow-Credentials: true` | Required for cross-origin cookie transmission |
-| **Preflight** | `OPTIONS` requests return `200` immediately | Prevents browser from blocking actual requests |
-| **Trust Proxy** | `app.set("trust proxy", 1)` | Ensures rate limiters use real client IP behind load balancers |
-| **Cookie Security** | `httpOnly`, `secure`, `sameSite: "None"` | XSS protection + HTTPS enforcement + cross-domain support |
-| **Logout Method** | `POST /api/auth/logout` | Changed from GET to POST to prevent CSRF attacks |
-| **File Validation** | Multer: PDF only, 5MB max | Prevents malicious file uploads |
-| **Password Policy** | Minimum 8 characters, bcrypt (10 rounds) | Enforced before hashing |
+Defined in `src/utils/api.js`:
+- **Base URL**: `VITE_API_URL` environment variable
+- **Credentials**: `withCredentials: true` for JWT cookies
+- **Global interceptor**: Automatically handles `401 Unauthorized` by redirecting to `/login` (unless on a public route)
 
 ---
 
-## Glossary
+## 12. Routing & Navigation
+
+### 12.1 Route Configuration
+
+| Path | Component | Access |
+|:---|:---|:---|
+| `/` | `Landing.jsx` | Public |
+| `/login` | `Login.jsx` | Public |
+| `/register` | `Register.jsx` | Public |
+| `/dashboard` | `Home.jsx` | Protected |
+| `/history` | `MockHistory.jsx` | Protected |
+| `/interview/:interviewId` | `Interview.jsx` | Protected |
+| `/interview/:interviewId/live` | `LiveInterview.jsx` | Protected |
+| `*` | Redirect to `/` | Catch-all |
+
+### 12.2 Protected Route Guard
+
+```mermaid
+graph TD
+    subgraph "Public Space"
+        R_ROOT["/"] --> Landing["Landing.jsx"]
+        R_LOGIN["/login"] --> Login["Login.jsx"]
+        R_REG["/register"] --> Register["Register.jsx"]
+    end
+
+    subgraph "Protected Space"
+        GUARD["Protected.jsx Guard"] --> LAYOUT["InterviewLayout"]
+        LAYOUT --> R_DASH["/dashboard"]
+        LAYOUT --> R_HIST["/history"]
+        LAYOUT --> R_INT["/interview/:id"]
+        LAYOUT --> R_LIVE["/interview/:id/live"]
+    end
+```
+
+The `Protected` component:
+1. **Loading**: Shows full-screen spinner while `useAuth` fetches session
+2. **Unauthenticated**: Redirects to `/login` via `Navigate`
+3. **Authenticated**: Renders `children`
+
+### 12.3 Lazy Loading & Error Boundaries
+
+- All major pages use `React.lazy()` + `Suspense` for code-splitting
+- `PageLoader` spinner shown during chunk loading
+- `RouteErrorBoundary` attached to root route via `errorElement` — catches routing failures and lazy-load errors
+- Wildcard `*` route redirects undefined URLs to landing page
+
+---
+
+## 13. Authentication Feature (Frontend)
+
+### 13.1 AuthContext & useAuth Hook
+
+```mermaid
+graph TD
+    subgraph "React Components"
+        Login["Login.jsx"]
+        Register["Register.jsx"]
+        Prot["Protected.jsx"]
+    end
+
+    subgraph "Hooks & Context"
+        UA["useAuth()"]
+        AC["AuthContext"]
+        AP["AuthProvider"]
+    end
+
+    subgraph "API Layer"
+        AA["auth.api.js"]
+        AX["Axios Instance"]
+    end
+
+    subgraph "Backend"
+        BE["Express Auth Routes"]
+    end
+
+    Login -->|"handleLogin()"| UA
+    Register -->|"handleRegister()"| UA
+    UA -->|"setUser/setLoading"| AC
+    AC -.->|"value"| AP
+    UA -->|"login/register/getMe"| AA
+    AA --> AX
+    AX -->|"HTTP POST/GET"| BE
+    Prot -->|"consume user/loading"| UA
+```
+
+**Key `useAuth` methods:**
+
+| Method | Description |
+|:---|:---|
+| `handleLogin` | Calls login API, updates global `user` state |
+| `handleRegister` | Handles user creation, sets initial session |
+| `handleLogout` | Clears local state, notifies backend to blacklist token |
+| `getAndSetUser` | Runs on mount via `useEffect`; fetches user via `get-me` for session persistence across refreshes |
+
+### 13.2 Service Layer
+
+| Function | Method | Endpoint |
+|:---|:---|:---|
+| `register` | `POST` | `/api/auth/register` |
+| `login` | `POST` | `/api/auth/login` |
+| `logout` | `POST` | `/api/auth/logout` |
+| `getMe` | `GET` | `/api/auth/get-me` |
+
+**UI Styling**: Glassmorphism aesthetic — `backdrop-filter: blur(16px)`, semi-transparent backgrounds, `max-width: 400px` centered form.
+
+---
+
+## 14. Interview Preparation Feature
+
+### 14.1 InterviewContext & useInterview Hook
+
+The `InterviewProvider` manages the global state for the current active `report` and the list of all user `reports`.
+
+| Hook Method | API Endpoint |
+|:---|:---|
+| `generateReport` | `POST /api/interview/` |
+| `getReportById` | `GET /api/interview/report/:id` |
+| `getReports` | `GET /api/interview/` |
+| `getResumePdf` | `POST /api/interview/resume/pdf/:id` |
+
+### 14.2 Interview Report Dashboard
+
+The `Interview.jsx` page is a three-column layout with five preparation modules:
+
+**Match Score Widget:**
+- SVG circular progress bar with `strokeDashoffset` animation
+- Color thresholds: ≥80 = Green (strong match), ≥50 = Yellow (good potential), <50 = Red (needs improvement)
+
+**Preparation Modules (navigated via `NAV_ITEMS` sidebar):**
+
+| Module | Description |
+|:---|:---|
+| Technical Questions | Accordion cards with `question`, `intention`, and model `answer` |
+| Behavioral Questions | Same structure, soft-skills focused |
+| Flashcard Bank | 3D tilt effect on mouse move; filter by All/Technical/Behavioral |
+| Roadmap Section | Day-by-day plan; adjustable 1–30 days; "Regenerate Plan" calls AI |
+| Job Search Section | AI-extracted job title + user-provided location → live JSearch results |
+
+**Resume PDF Pipeline:**
+```mermaid
+sequenceDiagram
+    participant UI as Interview.jsx
+    participant Hook as useInterview.js
+    participant API as interview.api.js
+    participant BE as Interview Controller
+    participant AI as AI Service (Puppeteer)
+
+    UI->>UI: handlePreviewClick()
+    UI->>Hook: previewResumePdf(interviewId)
+    Hook->>API: getResumePdf(interviewId)
+    API->>BE: GET /api/interview/report/:id/resume
+    BE->>AI: generateResumePdf(reportData)
+    AI-->>BE: Buffer (PDF)
+    BE-->>API: Blob Response
+    API-->>Hook: { url: objectURL, filename: string }
+    Hook-->>UI: previewData
+    UI->>UI: window.URL.createObjectURL → preview modal
+```
+
+### 14.3 Live Interview Session
+
+The live session operates as a **3-step state machine** in `LiveInterview.jsx`:
+
+```mermaid
+graph TD
+    subgraph "Step 0: Setup"
+        A["InterviewCommandCenter"] -- "startInterview()" --> B["getLiveQuestions()"]
+    end
+
+    subgraph "Step 1: Active Loop"
+        B -- "Success" --> C["askQuestion()"]
+        C -- "speak() + startListening()" --> D["User Response"]
+        D -- "handleSubmitAnswer()" --> E["evaluateSingleAnswer()"]
+        E -- "AI Feedback" --> F{"More Questions?"}
+        F -- "Yes" --> C
+        F -- "No / Early End" --> G["submitForGrading()"]
+    end
+
+    subgraph "Step 2: Results"
+        G -- "evaluateInterview()" --> H["LiveInterviewAnalytics"]
+    end
+```
+
+**Core Components:**
+
+| Component | Role |
+|:---|:---|
+| `InterviewCommandCenter` | Configuration: interview type, user command, resume insights |
+| `LiveCameraPanel` | Video feed, AI avatar, real-time biometric feedback display |
+| `TranscriptChat` | Q&A display, manual text input, AI Copilot hint button |
+| `LiveInterviewAnalytics` | Post-interview: overall score, skill bars, Q&A breakdown, PDF export |
+
+**Speech Services (`useSpeech` hook):**
+
+| Feature | Implementation |
+|:---|:---|
+| STT | `window.SpeechRecognition` — continuous listening with interim results |
+| TTS | `window.speechSynthesis` — AI narrates questions and feedback |
+| Interruption | If user speaks ≥4 words while AI talks for >1.5s, `speechSynthesis.cancel()` is called |
+
+**Biometric Aggregation on Submit:**
+- `avgConfidence` = `confidenceHistory.reduce((a,b) => a+b, 0) / confidenceHistory.length`
+- `eyeContactScore` = percentage of frames where eye contact was maintained
+
+### 14.4 Mock History
+
+The `MockHistory` page aggregates completed session data:
+
+| Entity | Description |
+|:---|:---|
+| Quick Stats | Total interviews and average score |
+| Progress Chart | `recharts` `LineChart` of `overallScore` over time |
+| Session Cards | Individual summaries with skill pills, score badge, date |
+| Mouse Tooltip | Hover tooltip showing full AI-generated session summary |
+
+**Layout**: Two-column grid on desktop (400px sidebar + 1fr content), collapses to single column on mobile.
+
+---
+
+## 15. Face Analysis & Biometric Subsystem
+
+All computer vision runs **client-side** using `face-api.js` + TensorFlow.js (WebGL). No video frames are sent to the server.
+
+### 15.1 Bundled ML Models
+
+Located in `Frontend/public/models/`:
+
+| Model | Purpose |
+|:---|:---|
+| **SSD MobileNet v1** | Primary face detector (CNN with MobileNet backbone) |
+| **Face Landmark 68** | 68-point landmark predictor for head orientation |
+| **Face Expression** | Classifies 7 emotions: neutral, happy, sad, angry, fearful, disgusted, surprised |
+| **Tiny Face Detector** | Lightweight alternative for lower-end devices |
+
+Models are lazy-loaded only when the user enables the camera. After first fetch, TensorFlow.js stores them in browser `IndexedDB` for instant subsequent loads.
+
+### 15.2 useFaceAnalysis Hook
+
+```mermaid
+graph TD
+    A["Start useFaceAnalysis"] --> B{"Models Loaded?"}
+    B -- No --> C["Wait/Load Models"]
+    B -- Yes --> D{"Video ReadyState == 4?"}
+    D -- No --> E["Check again in 1s"]
+    D -- Yes --> F["Call analyzeFace() every 500ms"]
+    F --> G["faceapi.detectSingleFace()"]
+    G --> H{"Face Found?"}
+    H -- No --> I["Increment faceLostCounter"]
+    I --> J{"Counter > 6?"}
+    J -- Yes --> K["Set Confidence = 0"]
+    H -- Yes --> L["Calculate Metrics"]
+    L --> M["Apply EMA Smoothing"]
+    M --> N["Update analysis state"]
+```
+
+**Heuristics:**
+
+| Heuristic | Logic |
+|:---|:---|
+| Eye Contact | `noseOffset < 25px` from jaw center = looking at screen |
+| Expression Bias Correction | Forces non-neutral if any emotion probability > 0.25 |
+| Confidence Smoothing (EMA) | `new = 0.65 * prev + 0.35 * raw` (alpha = 0.65) |
+| Debounced Face Loss | Waits 6 consecutive missed frames (~3s) before declaring face "lost" |
+
+**Analysis interval**: 500ms | **Min detection confidence**: 0.1
+
+**Returned state object:**
+```javascript
+{
+  eyeContact: boolean,         // Current frame eye contact status
+  isSmiling: boolean,          // Current frame smile status
+  confidenceScore: number,     // EMA-smoothed behavioral score (0-100)
+  dominantExpression: string   // Current detected emotion
+}
+```
+
+### 15.3 Biometric Scoring Weights
+
+| Condition | Score Impact |
+|:---|:---|
+| Eye Contact Detected | +20 |
+| Eye Contact Lost | -20 |
+| Smiling (Happy > 0.4) | +10 |
+| Neutral/Happy Expression | +10 |
+| Surprised Expression | -5 |
+| Sad/Fearful Expression | -15 |
+
+Base score starts at 50. Final score is EMA-smoothed.
+
+### 15.4 Data Flow: Pixels to Metrics
+
+```mermaid
+graph LR
+    subgraph "Hardware"
+        CAM["Navigator.mediaDevices.getUserMedia"]
+    end
+
+    subgraph "useFaceAnalysis Hook"
+        VREF["videoRef.current"]
+        DET["detectSingleFace()"]
+        SMOOTH["EMA Smoothing Logic"]
+    end
+
+    subgraph "Interview State"
+        METRICS["aiMetrics Object"]
+        EYE["eyeContactScore"]
+        CONF["avgConfidence"]
+    end
+
+    CAM --> VREF
+    VREF --> DET
+    DET --> SMOOTH
+    SMOOTH --> METRICS
+    METRICS -- "Final Submit" --> BACKEND["/api/interviews/evaluate"]
+```
+
+---
+
+## 16. Infrastructure & Deployment
+
+### 16.1 Deployment Architecture
+
+```mermaid
+graph TD
+    subgraph "Vercel (Frontend)"
+        VB["Vite Build"] --> EN["Edge Network"]
+        VJ["vercel.json"]
+    end
+
+    subgraph "Render (Backend Container)"
+        DF["Dockerfile"] --> ES["Express Server"]
+        ES --> PC["Puppeteer + Chromium"]
+    end
+
+    subgraph "Managed Data Services"
+        ES -- "MONGO_URI" --> MA["MongoDB Atlas"]
+        ES -- "REDIS_URL" --> RC["Redis Cloud"]
+    end
+
+    UB["User Browser"] -- "HTTPS" --> EN
+    EN -- "REST API" --> ES
+```
+
+| Service | Platform | Notes |
+|:---|:---|:---|
+| Frontend | Vercel | Static SPA, Edge delivery, `vercel.json` config |
+| Backend | Render | Containerized via `Dockerfile`, Chromium for Puppeteer |
+| Database | MongoDB Atlas | Managed cloud MongoDB |
+| Cache | Redis Cloud | Managed Redis instance |
+
+### 16.2 Docker Configuration
+
+**`Backend/Dockerfile`** uses `node:22-alpine`:
+- Installs native Alpine Chromium + font libraries for Puppeteer
+- `PUPPETEER_SKIP_DOWNLOAD=true` — prevents redundant binary download
+- `PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser`
+- `NODE_ENV=production`, `npm ci --omit=dev` for minimal image size
+- Runs under non-root `node` user for security
+
+**`Backend/docker-compose.yml`** services:
+- `backend` — builds from local `Dockerfile`, maps local dir for hot-reload
+- `redis` — `redis:alpine` image, aliased as `redis` on Docker network
+
+```bash
+# Run full local environment
+docker-compose up --build
+```
+
+### 16.3 Redis — Caching & Rate Limiting
+
+**Connection resilience:**
+- `reconnectStrategy`: up to 5 retries with increasing delays
+- `pingInterval`: 5 minutes to maintain long-lived connections
+- On failure: falls back to in-memory `MemoryStore` for rate limiting
+
+**Rate Limiting Tiers:**
+
+| Limiter | Scope | Limit | Window | Key Strategy |
+|:---|:---|:---|:---|:---|
+| Auth Limiter | Register/Login | 20 req | 15 min | `x-device-id` → email → IP |
+| AI Limiter | Interview Generation | 1000 req | 15 min | Network IP |
+| Job Limiter | JSearch API | 10 req | 15 min | Network IP |
+
+**Caching:**
+
+| Cache | Key Format | TTL |
+|:---|:---|:---|
+| Interview Report | `report:{sha256_hash}` | 24 hours |
+| Resume HTML | `resume_html_cache:{hash}` | 24 hours |
+| Job Search Results | `jobs:{query}:{location}` | 6 hours |
+
+**JWT Blacklisting:**
+1. User calls `POST /api/auth/logout`
+2. Token stored in Redis with TTL = token's remaining life
+3. `authUser` middleware checks blacklist on every protected request
+
+### 16.4 Frontend Build & Tooling
+
+**Vite** powers the build pipeline:
+- Path aliases configured in `vite.config.js` and mirrored in `jsconfig.json` for IDE IntelliSense
+- SCSS modular architecture with CSS custom properties for theming
+
+**Global CSS Variables (`style.scss`):**
+```scss
+--bg-dark: #09090b;
+--accent-gradient: /* emerald gradient */;
+```
+
+**Utility Classes:**
+- `.glass-panel` — `backdrop-filter: blur(16px)` + semi-transparent border
+- `.text-gradient` — `-webkit-background-clip: text` with emerald gradient
+
+**ESLint** (`eslint.config.js`):
+- `eslint-plugin-react-hooks` — enforces hook rules
+- `eslint-plugin-react-refresh` — ensures Fast Refresh compatibility
+- `ecmaVersion: 2020`, `globals.browser`
+
+---
+
+## 17. Getting Started — Setup & Configuration
+
+### 17.1 Environment Variables
+
+**Backend (`Backend/.env`):**
+
+| Variable | Description |
+|:---|:---|
+| `PORT` | Express server port (default: 3000) |
+| `MONGO_URI` | MongoDB connection string |
+| `REDIS_URL` | Redis connection string (e.g., `redis://localhost:6379`) |
+| `JWT_SECRET` | Secret key for signing JWTs |
+| `GEMINI_API_KEY` | Google Gemini AI API key |
+| `RAPIDAPI_KEY` | RapidAPI key for JSearch job listings |
+
+**Frontend (`Frontend/.env`):**
+
+| Variable | Description |
+|:---|:---|
+| `VITE_API_URL` | Backend API base URL |
+
+### 17.2 Backend Setup
+
+```bash
+cd Backend
+npm install
+npm run dev        # Start with nodemon (hot-reload)
+```
+
+**Startup dependency chain:**
+```
+MongoDB connected → Redis connected (or fallback) → Express app loaded → Server listening
+```
+
+### 17.3 Frontend Setup
+
+```bash
+cd Frontend
+npm install
+npm run dev        # Vite dev server
+npm run build      # Production build → /dist
+```
+
+### 17.4 Docker Compose
+
+```bash
+# From the Backend/ directory
+docker-compose up --build
+```
+
+This starts:
+- `backend` service on the configured `PORT`
+- `redis` service on `redis:6379` (internal Docker network)
+
+**Environment injection**: `REDIS_URL=redis://redis:6379` is automatically set via `docker-compose.yml`.
+
+---
+
+## 18. Glossary
 
 | Term | Definition |
-| :--- | :--- |
-| **AuthProvider** | React Context provider that manages `user` and `loading` state across the application. |
-| **InterviewProvider** | React Context provider that manages `report`, `reports`, and `loading` state for interview features. |
-| **authUser** | Express middleware that verifies JWTs and checks the Redis blacklist before allowing access to protected routes. |
-| **aiRateLimiter** | Express rate limiter (10 req/15 min) applied to AI-intensive routes to prevent abuse and control API costs. |
-| **globalBrowser** | Singleton Puppeteer browser instance reused across all PDF generation requests to avoid expensive re-launches. |
-| **callAiWithRetry** | Utility function that wraps Gemini API calls with exponential backoff retry logic for 429/quota errors. |
-| **generateCacheKey** | Helper that creates SHA-256 hashes of input combinations for deterministic Redis cache keys. |
-| **useSpeech** | React hook that wraps the Web Speech API for text-to-speech (TTS) and speech-to-text (STT) with interruption logic. |
-| **useFaceAnalysis** | React hook that uses face-api.js (TensorFlow.js) for real-time eye contact, expression, and confidence analysis. |
-| **EMA Smoothing** | Exponential Moving Average applied to confidence scores to prevent single-frame spikes from affecting the readout. |
-| **RedisStore** | `rate-limit-redis` adapter that allows `express-rate-limit` to share state across multiple server instances. |
-| **Zod Schema** | TypeScript-first schema declaration used to validate and type-check AI responses from Gemini. |
-| **zodToJsonSchema** | Converter that transforms Zod schemas into JSON Schema format, which is passed to Gemini's `responseSchema` config. |
-| **JSearch** | RapidAPI-hosted job search API used to fetch live job listings based on AI-extracted search queries. |
-| **Graceful Degradation** | Pattern where AI functions return hardcoded fallback responses when the Gemini API is unavailable (429 errors). |
-| **Token Blacklisting** | Security pattern where logged-out JWTs are stored in Redis with a TTL matching their remaining validity period. |
+|:---|:---|
+| **Interview Report** | AI-generated analysis of a resume vs. job description. Contains match score, questions, skill gaps, and preparation plan. Stored as `InterviewReport` in MongoDB. |
+| **Live Interview Session** | Real-time mock interview with STT, TTS, and face analysis. Results stored as `InterviewSession`. |
+| **AI Copilot** | Hint system during live interview. Provides subtle, context-aware hints without giving away the full answer. |
+| **Dynamic Roadmap** | Personalized day-by-day study plan (1–30 days) generated from identified skill gaps. |
+| **EMA** | Exponential Moving Average. Used to smooth `confidenceScore` in face analysis: `0.65 * prev + 0.35 * raw`. |
+| **TTS** | Text-to-Speech. `window.speechSynthesis` narrates AI questions and feedback. |
+| **STT** | Speech-to-Text. `window.SpeechRecognition` captures user answers. |
+| **Zod** | TypeScript-first schema validation library. Used to enforce structured JSON responses from Gemini AI. |
+| **Multer** | Node.js middleware for `multipart/form-data`. Handles resume PDF uploads with memory storage. |
+| **JWT** | JSON Web Token. Stateless session management via HTTP-only cookies. |
+| **Blacklist** | Redis-backed token revocation store. Invalidates JWTs before their natural expiry on logout. |
+| **callAiWithRetry** | Wrapper function implementing exponential backoff for Gemini API `429` errors. |
+| **asyncHandler** | Express utility that wraps async controllers to forward rejected promises to the global `errorHandler`. |
+| **SSD MobileNet v1** | CNN-based face detector used as the primary model in `useFaceAnalysis`. |
+| **Face Landmark 68** | 68-point facial landmark model used for eye contact heuristic calculation. |
+| **matchScore** | 0–100 score indicating alignment between a user's resume and the target job description. |
 
 ---
 
+## License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.

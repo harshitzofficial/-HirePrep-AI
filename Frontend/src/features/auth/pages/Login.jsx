@@ -1,7 +1,8 @@
 import React,{useState} from 'react'
 import { useNavigate, Link } from 'react-router'
-import "../auth.form.scss"
+import "@features/auth/styles/auth.form.scss"
 import { useAuth } from '../hooks/useAuth'
+import toast from 'react-hot-toast';
 
 const Login = () => {
 
@@ -22,12 +23,16 @@ const Login = () => {
             navigate('/dashboard');
         } else {
             // Show the specific error message from the backend or network
-            alert(message || "Invalid credentials. Please try again.");
+            toast.error(message || "Invalid credentials. Please try again.");
         }
     }
 
     if(loading){
-        return (<main><h1>Loading.......</h1></main>)
+        return (
+            <main style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <div className="spinner"></div>
+            </main>
+        )
     }
 
 

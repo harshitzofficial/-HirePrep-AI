@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router'
+import "@features/auth/styles/auth.form.scss"
 import { useAuth } from '../hooks/useAuth'
 
 const Register = () => {
@@ -30,7 +31,11 @@ const Register = () => {
     }
 
     if (loading) {
-        return (<main><h1>Loading.......</h1></main>)
+        return (
+            <main style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <div className="spinner"></div>
+            </main>
+        )
     }
 
     return (
