@@ -189,35 +189,104 @@ HirePrep-AI/
 ### High-Level Component Interaction
 
 ```mermaid
-graph TD
-    subgraph "Frontend (React 19 SPA)"
-        A["main.jsx"] --> B["App.jsx"]
-        B --> C["AuthProvider"]
-        B --> D["InterviewProvider"]
-        D --> E["useSpeech (TTS/STT)"]
-        D --> F["useFaceAnalysis (ML)"]
+graph TB
+    subgraph "Client Browser"
+        direction TB
+        subgraph "React 19 SPA (Vercel)"
+            LP["Landing Page"]
+            subgraph "Provider Tree"
+                AP["AuthProvider"]
+                IP["InterviewProvider"]
+            end
+            subgraph "Feature Pages"
+                AUTH["Auth Pages\n(Login / Register)"]
+                DASH["Dashboard\n(Home.jsx)"]
+                RPT["Interview Report\n(Interview.jsx)"]
+                LIVE["Live Interview\n(LiveInterview.jsx)"]
+                HIST["Mock History\n(History.jsx)"]
+                JOBS["Job Matcher"]
+            end
+            subgraph "In-Browser AI"
+                FA["face-api.js\n(SSD MobileNet)"]
+                TF["TensorFlow.js"]
+                WSA["Web Speech API"]
+            end
+        end
     end
 
-    subgraph "Backend (Node.js/Express)"
-        G["server.js"] --> H["app.js"]
-        H --> I["auth.middleware.js"]
-        H --> J["ai.service.js (Gemini)"]
-        H --> K["job.service.js (RapidAPI)"]
+    subgraph "Backend (Node.js / Express 5 — Docker)"
+        direction TB
+        subgraph "Middleware Layer"
+            CORS["CORS + Cookie Parser"]
+            AUTH_MW["authUser\n(JWT Middleware)"]
+            RL["aiRateLimiter\n(Redis Store)"]
+            MUL["Multer\n(PDF Upload)"]
+        end
+        subgraph "Route Layer"
+            AR["/api/auth"]
+            IR["/api/interview"]
+            JR["/api/jobs"]
+        end
+        subgraph "Controller Layer"
+            AC["auth.controller.js"]
+            IC["interview.controller.js"]
+            JC["job.controller.js"]
+        end
+        subgraph "Service Layer"
+            AIS["ai.service.js\n(Gemini Wrapper)"]
+            PUP["Puppeteer\n(PDF Generator)"]
+        end
     end
 
-    subgraph "Infrastructure"
-        L[("MongoDB (Mongoose)")]
-        M[("Redis (Caching/RL)")]
-        N["Puppeteer (Chromium)"]
+    subgraph "Persistence Layer"
+        MDB[("MongoDB Atlas\nUser\nInterviewReport\nInterviewSession")]
+        RDS[("Redis\nToken Blacklist\nRate Limit\nCache")]
     end
 
-    J --> M
-    I --> M
-    H --> L
-    J --> N
-    C -- "JWT/Cookie" --> I
-    D -- "API Requests" --> H
+    subgraph "External APIs"
+        GEM["Google Gemini API\n(LLM)"]
+        JSR["JSearch RapidAPI\n(Job Listings)"]
+    end
+
+    %% Frontend → Backend
+    AUTH -- "REST /api/auth" --> AR
+    DASH -- "REST /api/interview\n(multipart/form-data)" --> IR
+    RPT -- "REST /api/interview" --> IR
+    LIVE -- "REST /api/interview/live" --> IR
+    JOBS -- "REST /api/jobs" --> JR
+
+    %% In-browser AI wiring
+    LIVE --> FA
+    FA --> TF
+    LIVE --> WSA
+
+    %% Middleware chain
+    AR --> CORS --> AUTH_MW
+    IR --> CORS --> AUTH_MW --> RL --> MUL
+    JR --> CORS --> AUTH_MW
+
+    %% Controllers
+    AUTH_MW --> AC
+    MUL --> IC
+    AUTH_MW --> JC
+
+    %% Services
+    IC --> AIS
+    IC --> PUP
+    JC --> AIS
+
+    %% External calls
+    AIS --> GEM
+    JC --> JSR
+
+    %% Persistence
+    AC --> MDB
+    AC --> RDS
+    IC --> MDB
+    AUTH_MW --> RDS
+    RL --> RDS
 ```
+
 
 ### Main User Journey
 
