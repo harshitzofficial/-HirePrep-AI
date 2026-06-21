@@ -12,9 +12,7 @@
 
 # HirePrep AI
 
-**An AI-powered career platform that transforms resumes into actionable strategy with live interactive mock interviews, real-time biometric analysis, audio coaching, and dynamic study roadmaps using Google Gemini.**
-
-HirePrep AI is a full-stack interview preparation platform designed to help candidates bridge the gap between their current profile and their target job roles. By leveraging Large Language Models (LLMs) and real-time voice synthesis, the platform provides personalized roadmaps, deep resume analysis, and interactive mock interview sessions with biometric feedback.
+>HirePrep AI is a full-stack interview preparation platform designed to help candidates bridge the gap between their current profile and their target job roles. By leveraging Large Language Models (LLMs) and real-time voice synthesis, the platform provides personalized roadmaps, deep resume analysis, and interactive mock interview sessions with biometric feedback.
 
 ---
 
