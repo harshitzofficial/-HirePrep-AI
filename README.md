@@ -14,6 +14,9 @@
 
 >HirePrep AI is a full-stack interview preparation platform designed to help candidates bridge the gap between their current profile and their target job roles. By leveraging Large Language Models (LLMs) and real-time voice synthesis, the platform provides personalized roadmaps, deep resume analysis, and interactive mock interview sessions with biometric feedback.
 
+
+<img width="1918" height="1031" alt="image" src="https://github.com/user-attachments/assets/882aa4d1-1391-41dc-82ae-c5b7baf4f7df" />
+
 ---
 
 ## Table of Contents
