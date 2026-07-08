@@ -836,6 +836,81 @@ graph TD
 ### PDF Resume Generation Pipeline
 
 ```mermaid
+graph LR
+
+classDef user fill:#1e293b,stroke:#475569,color:#fff,stroke-width:2px
+classDef middleware fill:#7f1d1d,stroke:#ef4444,color:#fff,stroke-width:2px
+classDef controller fill:#1e3a8a,stroke:#3b82f6,color:#fff,stroke-width:2px
+classDef service fill:#713f12,stroke:#eab308,color:#fff,stroke-width:2px
+classDef db fill:#064e3b,stroke:#10b981,color:#fff,stroke-width:2px
+classDef browser fill:#312e81,stroke:#6366f1,color:#fff,stroke-width:2px
+
+%% ===================== STEP 1 =====================
+subgraph STEP1["STEP 1 · Generate Interview Report"]
+direction LR
+
+A["👤 User"]
+B["🛡️ Multer<br/>PDF Only • Max 5 MB"]
+C["🎮 interview.controller.js<br/>Extract Resume (pdf-parse)"]
+D[("🍃 MongoDB<br/>Store Resume Text")]
+
+A -->|"Upload PDF"| B
+B -->|"Validated File"| C
+C -->|"Save"| D
+
+end
+
+%% ===================== STEP 2 =====================
+subgraph STEP2["STEP 2 · Generate & Download PDF"]
+direction LR
+
+E["👤 User"]
+F["🎮 interview.controller.js<br/>Load Resume"]
+G{"⚡ Redis Cache"}
+
+H["🤖 Gemini AI<br/>Generate HTML"]
+I[("💾 Cache HTML")]
+
+J["⚙️ ai.service.js"]
+
+subgraph PUP["Puppeteer"]
+direction LR
+K["New Page"]
+L["Render HTML"]
+M["page.pdf()"]
+N["Close Page"]
+end
+
+O["📦 HTTP Response"]
+P["👤 Browser<br/>Download PDF"]
+
+E -->|"Download Report"| F
+F --> G
+
+G -->|"Cache Miss"| H
+H --> I
+I --> J
+
+G -->|"Cache Hit"| J
+
+J -->|"HTML"| K
+K --> L
+L --> M
+M --> N
+N --> O
+O -->|"Binary PDF"| P
+
+end
+
+class A,E,P user
+class B middleware
+class C,F controller
+class H,J service
+class D,G,I db
+class K,L,M,N browser
+```
+
+```mermaid
 sequenceDiagram
     participant C as "Controller"
     participant R as "Redis Cache"
