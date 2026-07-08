@@ -193,101 +193,123 @@ HirePrep-AI/
 
 ```mermaid
 graph TB
-    subgraph "Client Browser"
-        direction TB
-        subgraph "React 19 SPA (Vercel)"
-            LP["Landing Page"]
-            subgraph "Provider Tree"
-                AP["AuthProvider"]
-                IP["InterviewProvider"]
-            end
-            subgraph "Feature Pages"
-                AUTH["Auth Pages\n(Login / Register)"]
-                DASH["Dashboard\n(Home.jsx)"]
-                RPT["Interview Report\n(Interview.jsx)"]
-                LIVE["Live Interview\n(LiveInterview.jsx)"]
-                HIST["Mock History\n(History.jsx)"]
-                JOBS["Job Matcher"]
-            end
-            subgraph "In-Browser AI"
-                FA["face-api.js\n(SSD MobileNet)"]
-                TF["TensorFlow.js"]
-                WSA["Web Speech API"]
-            end
-        end
-    end
 
-    subgraph "Backend (Node.js / Express 5 — Docker)"
-        direction TB
-        subgraph "Middleware Layer"
-            CORS["CORS + Cookie Parser"]
-            AUTH_MW["authUser\n(JWT Middleware)"]
-            RL["aiRateLimiter\n(Redis Store)"]
-            MUL["Multer\n(PDF Upload)"]
-        end
-        subgraph "Route Layer"
-            AR["/api/auth"]
-            IR["/api/interview"]
-            JR["/api/jobs"]
-        end
-        subgraph "Controller Layer"
-            AC["auth.controller.js"]
-            IC["interview.controller.js"]
-            JC["job.controller.js"]
-        end
-        subgraph "Service Layer"
-            AIS["ai.service.js\n(Gemini Wrapper)"]
-            PUP["Puppeteer\n(PDF Generator)"]
-        end
-    end
+%% ===================== FRONTEND =====================
+subgraph CLIENT["Client Browser"]
+direction TB
 
-    subgraph "Persistence Layer"
-        MDB[("MongoDB Atlas\nUser\nInterviewReport\nInterviewSession")]
-        RDS[("Redis\nToken Blacklist\nRate Limit\nCache")]
-    end
+subgraph REACT["React 19 SPA (Vercel)"]
+direction TB
 
-    subgraph "External APIs"
-        GEM["Google Gemini API\n(LLM)"]
-        JSR["JSearch RapidAPI\n(Job Listings)"]
-    end
+LP["Landing Page"]
 
-    %% Frontend → Backend
-    AUTH -- "REST /api/auth" --> AR
-    DASH -- "REST /api/interview\n(multipart/form-data)" --> IR
-    RPT -- "REST /api/interview" --> IR
-    LIVE -- "REST /api/interview/live" --> IR
-    JOBS -- "REST /api/jobs" --> JR
+subgraph PROVIDERS["Provider Tree"]
+AP["AuthProvider"]
+IP["InterviewProvider"]
+end
 
-    %% In-browser AI wiring
-    LIVE --> FA
-    FA --> TF
-    LIVE --> WSA
+subgraph PAGES["Feature Pages"]
+AUTH["Auth Pages<br/>Login / Register"]
+DASH["Dashboard"]
+LIVE["Live Interview"]
+RPT["Interview Report"]
+HIST["Mock History"]
+JOBS["Job Matcher"]
+end
 
-    %% Middleware chain
-    AR --> CORS --> AUTH_MW
-    IR --> CORS --> AUTH_MW --> RL --> MUL
-    JR --> CORS --> AUTH_MW
+subgraph AI["In-Browser AI"]
+FA["face-api.js"]
+TF["TensorFlow.js"]
+WSA["Web Speech API"]
+end
 
-    %% Controllers
-    AUTH_MW --> AC
-    MUL --> IC
-    AUTH_MW --> JC
+end
+end
 
-    %% Services
-    IC --> AIS
-    IC --> PUP
-    JC --> AIS
+%% ===================== BACKEND =====================
+subgraph BACKEND["Backend (Node.js / Express 5)"]
+direction TB
 
-    %% External calls
-    AIS --> GEM
-    JC --> JSR
+subgraph ROUTES["Routes"]
+AR["/api/auth"]
+IR["/api/interview"]
+JR["/api/jobs"]
+end
 
-    %% Persistence
-    AC --> MDB
-    AC --> RDS
-    IC --> MDB
-    AUTH_MW --> RDS
-    RL --> RDS
+subgraph MIDDLEWARE["Middleware"]
+CORS["CORS + Cookie Parser"]
+AUTHMW["JWT Auth"]
+RL["AI Rate Limiter"]
+MUL["Multer (PDF Upload)"]
+end
+
+subgraph CONTROLLERS["Controllers"]
+AC["auth.controller.js"]
+IC["interview.controller.js"]
+JC["job.controller.js"]
+end
+
+subgraph SERVICES["Services"]
+AIS["Gemini Service"]
+PUP["PDF Generator (Puppeteer)"]
+end
+
+end
+
+%% ===================== STORAGE =====================
+subgraph DATA["Persistence"]
+MDB[("MongoDB Atlas")]
+RDS[("Redis")]
+end
+
+%% ===================== EXTERNAL =====================
+subgraph EXT["External APIs"]
+GEM["Google Gemini API"]
+JSR["JSearch RapidAPI"]
+end
+
+%% ===================== FRONTEND -> BACKEND =====================
+AUTH --> AR
+DASH --> IR
+LIVE --> IR
+RPT --> IR
+JOBS --> JR
+
+%% ===================== Browser AI =====================
+LIVE --> FA
+FA --> TF
+LIVE --> WSA
+
+%% ===================== AUTH ROUTE =====================
+AR --> CORS
+CORS --> AUTHMW
+AUTHMW --> AC
+
+%% ===================== INTERVIEW ROUTE =====================
+IR --> CORS
+AUTHMW --> RL
+RL --> MUL
+MUL --> IC
+
+%% ===================== JOB ROUTE =====================
+JR --> CORS
+AUTHMW --> JC
+
+%% ===================== SERVICES =====================
+IC --> AIS
+IC --> PUP
+JC --> AIS
+
+%% ===================== DATABASE =====================
+AC --> MDB
+AC --> RDS
+IC --> MDB
+AUTHMW --> RDS
+RL --> RDS
+
+%% ===================== EXTERNAL CALLS =====================
+AIS --> GEM
+JC --> JSR
 ```
 
 
