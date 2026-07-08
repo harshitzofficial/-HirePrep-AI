@@ -193,15 +193,12 @@ HirePrep-AI/
 <img width="1896" height="878" alt="image" src="https://github.com/user-attachments/assets/8496d675-6ccb-4954-aa39-f054c7595ca9" />
 
 ```mermaid
-flowchart TB
+flowchart LR
 
 %% ===================== FRONTEND =====================
 subgraph CLIENT["Client Browser"]
-    direction TB
-
     subgraph REACT["React 19 SPA (Vercel)"]
-        direction TB
-
+        
         LP["Landing Page"]
 
         subgraph PROVIDERS["Provider Tree"]
@@ -228,8 +225,7 @@ end
 
 %% ===================== BACKEND =====================
 subgraph BACKEND["Backend (Node.js / Express 5)"]
-    direction TB
-
+    
     subgraph ROUTES["Routes"]
         AR["/api/auth"]
         IR["/api/interview"]
