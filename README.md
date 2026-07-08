@@ -190,7 +190,6 @@ HirePrep-AI/
 ## Architecture Overview
 
 ### High-Level Component Interaction
-<img width="1896" height="878" alt="image" src="https://github.com/user-attachments/assets/8496d675-6ccb-4954-aa39-f054c7595ca9" />
 
 ```mermaid
 flowchart TB
