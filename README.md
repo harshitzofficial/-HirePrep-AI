@@ -193,96 +193,120 @@ HirePrep-AI/
 
 ```mermaid
 graph TB
-    subgraph CLIENT["🖥️ CLIENT LAYER"]
-        FE["⚛️ React + Vite\nFrontend\n(Vercel)"]
-    end
 
-    subgraph BACKEND["🐳 DOCKER CONTAINER (Render)"]
-        direction TB
+%% ===================== CLIENT =====================
+subgraph CLIENT["🖥️ Client Layer"]
+    FE["⚛️ React + Vite<br/>Frontend (Vercel)"]
+end
 
-        SRV["server.js\nEntry Point\n(dotenv → DB → Redis → App)"]
+%% ===================== BACKEND =====================
+subgraph BACKEND["🐳 Backend (Docker • Render)"]
+direction LR
 
-        subgraph EXPRESS["🚂 Express App  ·  app.js"]
-            direction LR
-            CORS["Manual CORS\nMiddleware"]
-            TP["trust proxy: 1"]
-        end
+SRV["server.js<br/>Entry Point"]
 
-        subgraph ROUTES["📡 Route Layer"]
-            AR["/api/auth\nauth.routes.js"]
-            IR["/api/interview\ninterview.routes.js"]
-            JR["/api/jobs\njob.routes.js"]
-        end
+EXP["Express App<br/>CORS • trust proxy"]
 
-        subgraph MIDDLEWARE["🛡️ Middleware Layer"]
-            AUTH["authMiddleware\nJWT verify +\nRedis blacklist check"]
-            MULTER["fileMiddleware\nMulter memoryStorage\nPDF only · 5MB limit"]
-            RL["aiRateLimiter\n10 req / 15 min\nRedisStore backed"]
-        end
+subgraph ROUTES["📡 Routes"]
+direction TB
+AR["/api/auth"]
+IR["/api/interview"]
+JR["/api/jobs"]
+end
 
-        subgraph CONTROLLERS["🎮 Controller Layer"]
-            AC["auth.controller.js\nregister · login\nlogout · getMe"]
-            IC["interview.controller.js\ngenerateReport · getReport\ngetAllReports · deleteReport\nresumePdf · liveQuestions\nevaluate · evaluateSingle\nliveHint · dynamicRoadmap\ngetAllSessions"]
-            JC["job.controller.js\nsearchJobs"]
-        end
+subgraph MW["🛡️ Middleware"]
+direction TB
+AUTH["JWT Auth"]
+RL["AI Rate Limiter"]
+MULTER["Multer PDF Upload"]
+end
 
-        subgraph SERVICES["⚙️ Service Layer"]
-            AIS["ai.service.js\nGemini API wrapper\ncallAiWithRetry (exp. backoff)\ngeneratePdfFromHtml\nPuppeteer singleton"]
-            JS["job.service.js\ngetJobSearchQueryFromResume\nfetchLiveJobs"]
-        end
+subgraph CTRL["🎮 Controllers"]
+direction TB
+AC["Auth Controller"]
+IC["Interview Controller"]
+JC["Job Controller"]
+end
 
-        subgraph MODELS["🗃️ Mongoose Models"]
-            UM["User\nusername · email\npassword (bcrypt)"]
-            IRM["InterviewReport\njobDescription · resume\nmatchScore · detectedSkills\nidentifiedProjects\ntechnicalQuestions\nbehavioralQuestions\nskillGaps · preparationPlan"]
-            ISM["InterviewSession\ntranscript · overallScore\nskills (confidence/\ncommunication/correctness)\nquestionBreakdown · aiMetrics"]
-        end
+subgraph SERVICES["⚙️ Services"]
+direction TB
+AIS["AI Service<br/>Gemini + PDF"]
+JS["Job Service"]
+end
 
-        subgraph CONFIG["⚙️ Config"]
-            DB_CFG["database.js\nMongoose connect"]
-            R_CFG["redis.js\ncreateClient\nreconnectStrategy\npingInterval: 5min"]
-        end
-    end
+subgraph MODELS["🗃️ Models"]
+direction TB
+UM["User"]
+IRM["InterviewReport"]
+ISM["InterviewSession"]
+end
 
-    subgraph DATA["💾 DATA LAYER"]
-        MONGO[("🍃 MongoDB Atlas\nUsers\nInterviewReports\nInterviewSessions")]
-        REDIS[("⚡ Redis\n─────────────\nToken Blacklist\nReport Cache (24h)\nResume HTML Cache (24h)\nJob Listings Cache (6h)\nRate Limit Counters")]
-    end
+CFG["⚙️ Config<br/>MongoDB + Redis"]
 
-    subgraph EXTERNAL["🌐 EXTERNAL SERVICES"]
-        GEMINI["🤖 Google Gemini AI\ngemini-2.5-flash-lite\nStructured JSON Output\nZod Schema Validation"]
-        JSEARCH["🔍 JSearch API\n(RapidAPI)\nLive Job Listings"]
-    end
+end
 
-    FE -- "HTTPS + httpOnly Cookie\nJWT Auth" --> SRV
-    SRV --> EXPRESS
-    EXPRESS --> ROUTES
-    AR --> AUTH --> AC
-    IR --> AUTH --> RL --> MULTER --> IC
-    JR --> AUTH --> JC
-    IC --> AIS
-    IC --> MODELS
-    JC --> JS
-    JS --> JSEARCH
-    JS --> REDIS
-    AIS --> GEMINI
-    AIS --> REDIS
-    AC --> REDIS
-    AUTH --> REDIS
-    MODELS --> MONGO
-    CONFIG --> MONGO
-    CONFIG --> REDIS
+%% ===================== DATA =====================
+subgraph DATA["💾 Data Layer"]
+direction LR
+MONGO[("🍃 MongoDB Atlas")]
+REDIS[("⚡ Redis<br/>Cache • Blacklist • Rate Limit")]
+end
 
-    classDef clientStyle fill:#6366f1,stroke:#4338ca,color:#fff
-    classDef serviceStyle fill:#0ea5e9,stroke:#0284c7,color:#fff
-    classDef dataStyle fill:#10b981,stroke:#059669,color:#fff
-    classDef externalStyle fill:#f59e0b,stroke:#d97706,color:#fff
-    classDef controllerStyle fill:#8b5cf6,stroke:#7c3aed,color:#fff
+%% ===================== EXTERNAL =====================
+subgraph EXT["🌐 External APIs"]
+direction LR
+GEMINI["🤖 Google Gemini"]
+JSEARCH["🔍 JSearch API"]
+end
 
-    class FE clientStyle
-    class AIS,JS serviceStyle
-    class MONGO,REDIS dataStyle
-    class GEMINI,JSEARCH externalStyle
-    class IC,AC,JC controllerStyle
+%% ===================== FLOW =====================
+
+FE -->|"HTTPS + JWT Cookie"| SRV
+SRV --> EXP
+EXP --> ROUTES
+
+AR --> AUTH --> AC
+IR --> AUTH
+AUTH --> RL
+RL --> MULTER
+MULTER --> IC
+JR --> AUTH --> JC
+
+AC --> UM
+IC --> IRM
+IC --> ISM
+
+IC --> AIS
+JC --> JS
+
+AIS --> GEMINI
+JS --> JSEARCH
+
+AIS --> REDIS
+JS --> REDIS
+AUTH --> REDIS
+RL --> REDIS
+
+UM --> MONGO
+IRM --> MONGO
+ISM --> MONGO
+
+CFG --> MONGO
+CFG --> REDIS
+
+%% ===================== COLORS =====================
+
+classDef client fill:#6366f1,stroke:#4338ca,color:#fff
+classDef service fill:#0ea5e9,stroke:#0284c7,color:#fff
+classDef data fill:#10b981,stroke:#059669,color:#fff
+classDef external fill:#f59e0b,stroke:#d97706,color:#fff
+classDef controller fill:#8b5cf6,stroke:#7c3aed,color:#fff
+
+class FE client
+class AIS,JS service
+class AC,IC,JC controller
+class MONGO,REDIS data
+class GEMINI,JSEARCH external
 ```
 
 
