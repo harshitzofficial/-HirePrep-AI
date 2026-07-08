@@ -204,11 +204,13 @@ direction TB
 LP["Landing Page"]
 
 subgraph PROVIDERS["Provider Tree"]
+direction TB
 AP["AuthProvider"]
 IP["InterviewProvider"]
 end
 
 subgraph PAGES["Feature Pages"]
+direction LR
 AUTH["Auth Pages<br/>Login / Register"]
 DASH["Dashboard"]
 LIVE["Live Interview"]
@@ -218,6 +220,7 @@ JOBS["Job Matcher"]
 end
 
 subgraph AI["In-Browser AI"]
+direction LR
 FA["face-api.js"]
 TF["TensorFlow.js"]
 WSA["Web Speech API"]
@@ -227,73 +230,98 @@ end
 end
 
 %% ===================== BACKEND =====================
-subgraph BACKEND["Backend (Node.js / Express 5)"]
+subgraph BACKEND["Backend (Node.js /Express 5)"]
 direction TB
 
 subgraph ROUTES["Routes"]
+direction LR
 AR["/api/auth"]
 IR["/api/interview"]
 JR["/api/jobs"]
 end
 
 subgraph MIDDLEWARE["Middleware"]
-CORS["CORS + Cookie Parser"]
-AUTHMW["JWT Auth"]
+direction LR
+
+subgraph AUTHFLOW["Auth Flow"]
+direction TB
+C1["CORS"]
+A1["JWT Auth"]
+end
+
+subgraph INTERVIEWFLOW["Interview Flow"]
+direction TB
+C2["CORS"]
+A2["JWT Auth"]
 RL["AI Rate Limiter"]
 MUL["Multer (PDF Upload)"]
 end
 
+subgraph JOBFLOW["Job Flow"]
+direction TB
+C3["CORS"]
+A3["JWT Auth"]
+end
+
+end
+
 subgraph CONTROLLERS["Controllers"]
+direction LR
 AC["auth.controller.js"]
 IC["interview.controller.js"]
 JC["job.controller.js"]
 end
 
 subgraph SERVICES["Services"]
+direction LR
 AIS["Gemini Service"]
-PUP["PDF Generator (Puppeteer)"]
+PUP["PDF Generator"]
 end
 
 end
 
 %% ===================== STORAGE =====================
 subgraph DATA["Persistence"]
+direction LR
 MDB[("MongoDB Atlas")]
 RDS[("Redis")]
 end
 
 %% ===================== EXTERNAL =====================
 subgraph EXT["External APIs"]
+direction LR
 GEM["Google Gemini API"]
 JSR["JSearch RapidAPI"]
 end
 
-%% ===================== FRONTEND -> BACKEND =====================
+%% ===================== CLIENT CALLS =====================
 AUTH --> AR
 DASH --> IR
 LIVE --> IR
 RPT --> IR
 JOBS --> JR
 
-%% ===================== Browser AI =====================
+%% Browser AI
 LIVE --> FA
 FA --> TF
 LIVE --> WSA
 
-%% ===================== AUTH ROUTE =====================
-AR --> CORS
-CORS --> AUTHMW
-AUTHMW --> AC
+%% ===================== AUTH =====================
+AR --> C1
+C1 --> A1
+A1 --> AC
 
-%% ===================== INTERVIEW ROUTE =====================
-IR --> CORS
-AUTHMW --> RL
+%% ===================== INTERVIEW =====================
+IR --> C2
+C2 --> A2
+A2 --> RL
 RL --> MUL
 MUL --> IC
 
-%% ===================== JOB ROUTE =====================
-JR --> CORS
-AUTHMW --> JC
+%% ===================== JOB =====================
+JR --> C3
+C3 --> A3
+A3 --> JC
 
 %% ===================== SERVICES =====================
 IC --> AIS
@@ -303,13 +331,16 @@ JC --> AIS
 %% ===================== DATABASE =====================
 AC --> MDB
 AC --> RDS
+
 IC --> MDB
-AUTHMW --> RDS
+IC --> RDS
+
 RL --> RDS
 
-%% ===================== EXTERNAL CALLS =====================
+%% ===================== EXTERNAL =====================
 AIS --> GEM
 JC --> JSR
+
 ```
 
 
