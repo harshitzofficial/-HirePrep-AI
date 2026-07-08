@@ -193,31 +193,20 @@ HirePrep-AI/
 <img width="1896" height="878" alt="image" src="https://github.com/user-attachments/assets/8496d675-6ccb-4954-aa39-f054c7595ca9" />
 
 ```mermaid
-flowchart LR
-
-%% ===================== INVISIBLE STRUCTURAL LINKS =====================
-%% These force the engine to place these blocks in a strict Left-to-Right order
-CLIENT ~~~ BACKEND
-BACKEND ~~~ DATA
-BACKEND ~~~ EXT
+flowchart TB
 
 %% ===================== FRONTEND =====================
 subgraph CLIENT["Client Browser"]
-    direction TB
-
     subgraph REACT["React 19 SPA (Vercel)"]
-        direction TB
         
         LP["Landing Page"]
 
         subgraph PROVIDERS["Provider Tree"]
-            direction TB
             AP["AuthProvider"]
             IP["InterviewProvider"]
         end
 
         subgraph PAGES["Feature Pages"]
-            direction TB
             AUTH["Auth Pages<br>Login / Register"]
             DASH["Dashboard"]
             LIVE["Live Interview"]
@@ -227,7 +216,6 @@ subgraph CLIENT["Client Browser"]
         end
 
         subgraph AI["In-Browser AI"]
-            direction TB
             FA["face-api.js"]
             TF["TensorFlow.js"]
             WSA["Web Speech API"]
@@ -237,17 +225,14 @@ end
 
 %% ===================== BACKEND =====================
 subgraph BACKEND["Backend (Node.js / Express 5)"]
-    direction LR
     
     subgraph ROUTES["Routes"]
-        direction TB
         AR["/api/auth"]
         IR["/api/interview"]
         JR["/api/jobs"]
     end
 
     subgraph MIDDLEWARE["Middleware"]
-        direction TB
         CORS["CORS + Cookie Parser"]
         AUTHMW["JWT Auth"]
         RL["AI Rate Limiter"]
@@ -255,14 +240,12 @@ subgraph BACKEND["Backend (Node.js / Express 5)"]
     end
 
     subgraph CONTROLLERS["Controllers"]
-        direction TB
         AC["auth.controller.js"]
         IC["interview.controller.js"]
         JC["job.controller.js"]
     end
 
     subgraph SERVICES["Services"]
-        direction TB
         AIS["Gemini Service"]
         PUP["PDF Generator (Puppeteer)"]
     end
@@ -270,14 +253,12 @@ end
 
 %% ===================== STORAGE =====================
 subgraph DATA["Persistence"]
-    direction TB
     MDB[("MongoDB Atlas")]
     RDS[("Redis")]
 end
 
 %% ===================== EXTERNAL =====================
 subgraph EXT["External APIs"]
-    direction TB
     GEM["Google Gemini API"]
     JSR["JSearch RapidAPI"]
 end
