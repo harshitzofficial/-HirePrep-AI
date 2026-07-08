@@ -192,6 +192,124 @@ HirePrep-AI/
 ### High-Level Component Interaction
 <img width="1896" height="878" alt="image" src="https://github.com/user-attachments/assets/8496d675-6ccb-4954-aa39-f054c7595ca9" />
 
+```mermaid
+flowchart TB
+
+%% ===================== FRONTEND =====================
+subgraph CLIENT["Client Browser"]
+    direction TB
+
+    subgraph REACT["React 19 SPA (Vercel)"]
+        direction TB
+
+        LP["Landing Page"]
+
+        subgraph PROVIDERS["Provider Tree"]
+            AP["AuthProvider"]
+            IP["InterviewProvider"]
+        end
+
+        subgraph PAGES["Feature Pages"]
+            AUTH["Auth Pages<br>Login / Register"]
+            DASH["Dashboard"]
+            LIVE["Live Interview"]
+            RPT["Interview Report"]
+            HIST["Mock History"]
+            JOBS["Job Matcher"]
+        end
+
+        subgraph AI["In-Browser AI"]
+            FA["face-api.js"]
+            TF["TensorFlow.js"]
+            WSA["Web Speech API"]
+        end
+    end
+end
+
+%% ===================== BACKEND =====================
+subgraph BACKEND["Backend (Node.js / Express 5)"]
+    direction TB
+
+    subgraph ROUTES["Routes"]
+        AR["/api/auth"]
+        IR["/api/interview"]
+        JR["/api/jobs"]
+    end
+
+    subgraph MIDDLEWARE["Middleware"]
+        CORS["CORS + Cookie Parser"]
+        AUTHMW["JWT Auth"]
+        RL["AI Rate Limiter"]
+        MUL["Multer (PDF Upload)"]
+    end
+
+    subgraph CONTROLLERS["Controllers"]
+        AC["auth.controller.js"]
+        IC["interview.controller.js"]
+        JC["job.controller.js"]
+    end
+
+    subgraph SERVICES["Services"]
+        AIS["Gemini Service"]
+        PUP["PDF Generator (Puppeteer)"]
+    end
+end
+
+%% ===================== STORAGE =====================
+subgraph DATA["Persistence"]
+    MDB[("MongoDB Atlas")]
+    RDS[("Redis")]
+end
+
+%% ===================== EXTERNAL =====================
+subgraph EXT["External APIs"]
+    GEM["Google Gemini API"]
+    JSR["JSearch RapidAPI"]
+end
+
+%% ===================== FRONTEND -> BACKEND =====================
+AUTH --> AR
+DASH --> IR
+LIVE --> IR
+RPT --> IR
+JOBS --> JR
+
+%% ===================== Browser AI =====================
+LIVE --> FA
+FA --> TF
+LIVE --> WSA
+
+%% ===================== AUTH ROUTE =====================
+AR --> CORS
+CORS --> AUTHMW
+AUTHMW --> AC
+
+%% ===================== INTERVIEW ROUTE =====================
+IR --> CORS
+AUTHMW --> RL
+RL --> MUL
+MUL --> IC
+
+%% ===================== JOB ROUTE =====================
+JR --> CORS
+AUTHMW --> JC
+
+%% ===================== SERVICES =====================
+IC --> AIS
+IC --> PUP
+JC --> AIS
+
+%% ===================== DATABASE =====================
+AC --> MDB
+AC --> RDS
+IC --> MDB
+AUTHMW --> RDS
+RL --> RDS
+
+%% ===================== EXTERNAL CALLS =====================
+AIS --> GEM
+JC --> JSR
+```
 
 ### Main User Journey
 
