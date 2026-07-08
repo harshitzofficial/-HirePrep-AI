@@ -193,154 +193,96 @@ HirePrep-AI/
 
 ```mermaid
 graph TB
+    subgraph CLIENT["🖥️ CLIENT LAYER"]
+        FE["⚛️ React + Vite\nFrontend\n(Vercel)"]
+    end
 
-%% ===================== FRONTEND =====================
-subgraph CLIENT["Client Browser"]
-direction TB
+    subgraph BACKEND["🐳 DOCKER CONTAINER (Render)"]
+        direction TB
 
-subgraph REACT["React 19 SPA (Vercel)"]
-direction TB
+        SRV["server.js\nEntry Point\n(dotenv → DB → Redis → App)"]
 
-LP["Landing Page"]
+        subgraph EXPRESS["🚂 Express App  ·  app.js"]
+            direction LR
+            CORS["Manual CORS\nMiddleware"]
+            TP["trust proxy: 1"]
+        end
 
-subgraph PROVIDERS["Provider Tree"]
-direction TB
-AP["AuthProvider"]
-IP["InterviewProvider"]
-end
+        subgraph ROUTES["📡 Route Layer"]
+            AR["/api/auth\nauth.routes.js"]
+            IR["/api/interview\ninterview.routes.js"]
+            JR["/api/jobs\njob.routes.js"]
+        end
 
-subgraph PAGES["Feature Pages"]
-direction LR
-AUTH["Auth Pages<br/>Login / Register"]
-DASH["Dashboard"]
-LIVE["Live Interview"]
-RPT["Interview Report"]
-HIST["Mock History"]
-JOBS["Job Matcher"]
-end
+        subgraph MIDDLEWARE["🛡️ Middleware Layer"]
+            AUTH["authMiddleware\nJWT verify +\nRedis blacklist check"]
+            MULTER["fileMiddleware\nMulter memoryStorage\nPDF only · 5MB limit"]
+            RL["aiRateLimiter\n10 req / 15 min\nRedisStore backed"]
+        end
 
-subgraph AI["In-Browser AI"]
-direction LR
-FA["face-api.js"]
-TF["TensorFlow.js"]
-WSA["Web Speech API"]
-end
+        subgraph CONTROLLERS["🎮 Controller Layer"]
+            AC["auth.controller.js\nregister · login\nlogout · getMe"]
+            IC["interview.controller.js\ngenerateReport · getReport\ngetAllReports · deleteReport\nresumePdf · liveQuestions\nevaluate · evaluateSingle\nliveHint · dynamicRoadmap\ngetAllSessions"]
+            JC["job.controller.js\nsearchJobs"]
+        end
 
-end
-end
+        subgraph SERVICES["⚙️ Service Layer"]
+            AIS["ai.service.js\nGemini API wrapper\ncallAiWithRetry (exp. backoff)\ngeneratePdfFromHtml\nPuppeteer singleton"]
+            JS["job.service.js\ngetJobSearchQueryFromResume\nfetchLiveJobs"]
+        end
 
-%% ===================== BACKEND =====================
-subgraph BACKEND["Backend (Node.js /Express 5)"]
-direction TB
+        subgraph MODELS["🗃️ Mongoose Models"]
+            UM["User\nusername · email\npassword (bcrypt)"]
+            IRM["InterviewReport\njobDescription · resume\nmatchScore · detectedSkills\nidentifiedProjects\ntechnicalQuestions\nbehavioralQuestions\nskillGaps · preparationPlan"]
+            ISM["InterviewSession\ntranscript · overallScore\nskills (confidence/\ncommunication/correctness)\nquestionBreakdown · aiMetrics"]
+        end
 
-subgraph ROUTES["Routes"]
-direction LR
-AR["/api/auth"]
-IR["/api/interview"]
-JR["/api/jobs"]
-end
+        subgraph CONFIG["⚙️ Config"]
+            DB_CFG["database.js\nMongoose connect"]
+            R_CFG["redis.js\ncreateClient\nreconnectStrategy\npingInterval: 5min"]
+        end
+    end
 
-subgraph MIDDLEWARE["Middleware"]
-direction LR
+    subgraph DATA["💾 DATA LAYER"]
+        MONGO[("🍃 MongoDB Atlas\nUsers\nInterviewReports\nInterviewSessions")]
+        REDIS[("⚡ Redis\n─────────────\nToken Blacklist\nReport Cache (24h)\nResume HTML Cache (24h)\nJob Listings Cache (6h)\nRate Limit Counters")]
+    end
 
-subgraph AUTHFLOW["Auth Flow"]
-direction TB
-C1["CORS"]
-A1["JWT Auth"]
-end
+    subgraph EXTERNAL["🌐 EXTERNAL SERVICES"]
+        GEMINI["🤖 Google Gemini AI\ngemini-2.5-flash-lite\nStructured JSON Output\nZod Schema Validation"]
+        JSEARCH["🔍 JSearch API\n(RapidAPI)\nLive Job Listings"]
+    end
 
-subgraph INTERVIEWFLOW["Interview Flow"]
-direction TB
-C2["CORS"]
-A2["JWT Auth"]
-RL["AI Rate Limiter"]
-MUL["Multer (PDF Upload)"]
-end
+    FE -- "HTTPS + httpOnly Cookie\nJWT Auth" --> SRV
+    SRV --> EXPRESS
+    EXPRESS --> ROUTES
+    AR --> AUTH --> AC
+    IR --> AUTH --> RL --> MULTER --> IC
+    JR --> AUTH --> JC
+    IC --> AIS
+    IC --> MODELS
+    JC --> JS
+    JS --> JSEARCH
+    JS --> REDIS
+    AIS --> GEMINI
+    AIS --> REDIS
+    AC --> REDIS
+    AUTH --> REDIS
+    MODELS --> MONGO
+    CONFIG --> MONGO
+    CONFIG --> REDIS
 
-subgraph JOBFLOW["Job Flow"]
-direction TB
-C3["CORS"]
-A3["JWT Auth"]
-end
+    classDef clientStyle fill:#6366f1,stroke:#4338ca,color:#fff
+    classDef serviceStyle fill:#0ea5e9,stroke:#0284c7,color:#fff
+    classDef dataStyle fill:#10b981,stroke:#059669,color:#fff
+    classDef externalStyle fill:#f59e0b,stroke:#d97706,color:#fff
+    classDef controllerStyle fill:#8b5cf6,stroke:#7c3aed,color:#fff
 
-end
-
-subgraph CONTROLLERS["Controllers"]
-direction LR
-AC["auth.controller.js"]
-IC["interview.controller.js"]
-JC["job.controller.js"]
-end
-
-subgraph SERVICES["Services"]
-direction LR
-AIS["Gemini Service"]
-PUP["PDF Generator"]
-end
-
-end
-
-%% ===================== STORAGE =====================
-subgraph DATA["Persistence"]
-direction LR
-MDB[("MongoDB Atlas")]
-RDS[("Redis")]
-end
-
-%% ===================== EXTERNAL =====================
-subgraph EXT["External APIs"]
-direction LR
-GEM["Google Gemini API"]
-JSR["JSearch RapidAPI"]
-end
-
-%% ===================== CLIENT CALLS =====================
-AUTH --> AR
-DASH --> IR
-LIVE --> IR
-RPT --> IR
-JOBS --> JR
-
-%% Browser AI
-LIVE --> FA
-FA --> TF
-LIVE --> WSA
-
-%% ===================== AUTH =====================
-AR --> C1
-C1 --> A1
-A1 --> AC
-
-%% ===================== INTERVIEW =====================
-IR --> C2
-C2 --> A2
-A2 --> RL
-RL --> MUL
-MUL --> IC
-
-%% ===================== JOB =====================
-JR --> C3
-C3 --> A3
-A3 --> JC
-
-%% ===================== SERVICES =====================
-IC --> AIS
-IC --> PUP
-JC --> AIS
-
-%% ===================== DATABASE =====================
-AC --> MDB
-AC --> RDS
-
-IC --> MDB
-IC --> RDS
-
-RL --> RDS
-
-%% ===================== EXTERNAL =====================
-AIS --> GEM
-JC --> JSR
-
+    class FE clientStyle
+    class AIS,JS serviceStyle
+    class MONGO,REDIS dataStyle
+    class GEMINI,JSEARCH externalStyle
+    class IC,AC,JC controllerStyle
 ```
 
 
