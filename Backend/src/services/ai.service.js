@@ -9,7 +9,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY,
 });
 
-const MODEL_NAME = "gemini-2.5-flash-lite";
+const MODEL_NAME = "gemini-2.5-flash";
 
 // 🟢 Helper function for exponential backoff retries (handles 429 errors)
 async function callAiWithRetry(fn, maxRetries = 3) {
@@ -19,9 +19,9 @@ async function callAiWithRetry(fn, maxRetries = 3) {
       return await fn();
     } catch (error) {
       lastError = error;
-      if (error.status === 429 || error.message?.includes('429') || error.message?.includes('quota')) {
+      if (error.status === 429 || error.status === 503 || error.status === 500 || error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('503')) {
         const waitTime = Math.pow(2, i) * 1000 + Math.random() * 1000;
-        console.warn(`⚠️ AI Rate Limit hit. Retrying in ${Math.round(waitTime)}ms... (Attempt ${i + 1}/${maxRetries})`);
+        console.warn(`⚠️ AI Error (${error.status || 'Unknown'}). Retrying in ${Math.round(waitTime)}ms... (Attempt ${i + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
@@ -469,23 +469,55 @@ HTML STRUCTURE TO FOLLOW EXACTLY:
 
 Return ONLY a valid JSON object: { "html": "<complete html string here>" }`;
 
-    const response = await callAiWithRetry(() =>
-      ai.models.generateContent({
-        model: MODEL_NAME,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: zodToJsonSchema(resumePdfSchema),
-        },
-      })
-    );
-
-    jsonContent = JSON.parse(response.text);
-
     try {
-      await redisClient.setEx(cacheKey, 86400, JSON.stringify(jsonContent));
-    } catch (err) {
-      console.warn("⚠️ Redis Write Error:", err);
+      const response = await callAiWithRetry(() =>
+        ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: zodToJsonSchema(resumePdfSchema),
+          },
+        })
+      );
+
+      jsonContent = JSON.parse(response.text);
+
+      try {
+        await redisClient.setEx(cacheKey, 86400, JSON.stringify(jsonContent));
+      } catch (err) {
+        console.warn("⚠️ Redis Write Error:", err);
+      }
+    } catch (error) {
+      console.warn("⚠️ AI Failed for Resume PDF. Falling back to basic HTML:", error.message);
+      jsonContent = {
+        html: `<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; line-height: 1.6; color: #333; background: #fff; }
+h1 { color: #1e40af; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 20px; text-align: center; }
+h2 { color: #2563eb; margin-top: 25px; margin-bottom: 10px; font-size: 18px; }
+.section { margin-bottom: 25px; }
+p, pre { font-size: 14px; margin: 0; }
+pre { white-space: pre-wrap; font-family: inherit; background: #f9fafb; padding: 15px; border-radius: 5px; border: 1px solid #e5e7eb; }
+.notice { background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 10px; border-radius: 5px; font-size: 12px; margin-bottom: 20px; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="notice">Note: The AI-enhanced layout is currently unavailable due to high server demand. This is a basic version of your resume.</div>
+  <h1>Resume</h1>
+  <div class="section">
+    <h2>Profile Summary</h2>
+    <p>${selfDescription || "Not provided"}</p>
+  </div>
+  <div class="section">
+    <h2>Details & Experience</h2>
+    <pre>${resume || "Not provided"}</pre>
+  </div>
+</body>
+</html>`
+      };
     }
   }
 
